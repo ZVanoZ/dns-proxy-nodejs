@@ -1,4 +1,16 @@
-Как запустить?
+# О проекте
+
+"dns-proxy-nodejs" - маленький DNS для использования при разработке сетевых приложений, либо для разруливания DNS запросов при работе через VPN. 
+
+---
+
+## Состояние
+
+Разработка. Функционал не работает.
+
+---
+
+## Как запустить?
 
 1. Инициализируйте проект:
 
@@ -60,6 +72,9 @@ nslookup -port=5053 google.com 127.0.0.1
 nslookup -retry=0 -port=5053 my-invalid-host.local 127.0.0.1
 ```
 
+---
+
+## RAW
 
 ```bash
 # Инициализация TS
@@ -69,3 +84,5 @@ npm install --save-dev typescript @types/node @types/dns-packet @types/ini ts-no
 # Создание конфига TS
 npx tsc --init
 ```
+
+---
