@@ -1,0 +1,13 @@
+[app]
+host=0.0.0.0
+port=53
+
+[upstream-dns]
+
+0=1.1.1.1
+1=10.10.10.1
+
+[hosts]
+app.dev.local=192.168.10.50
+api.dev.local=192.168.10.51
+
