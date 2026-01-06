@@ -1,0 +1,21 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "vscode.typescript-language-features",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "vscode.typescript-language-features",
+    "editor.tabSize": 2
+  },
+  "[javascript]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "vscode.typescript-language-features",
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
+  }
+}
