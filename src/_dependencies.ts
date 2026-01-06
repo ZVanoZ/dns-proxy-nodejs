@@ -4,3 +4,4 @@
 import * as iniModule from "ini";
 export { iniModule as ini };
 export * as dnsPacket from "dns-packet";
+// import type { DecodedPacket } from "dns-packet";
