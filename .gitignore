@@ -3,6 +3,7 @@
 /dist/
 
 /config/app.ini
+/logs/
 
 # Скомпилированные файлы в src/
 /src/**/*.js

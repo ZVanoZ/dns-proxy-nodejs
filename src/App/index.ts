@@ -8,6 +8,7 @@ import { Options } from "./Options/index.js";
 import type { Socket, RemoteInfo } from "node:dgram";
 import dgram from "node:dgram";
 import type { DecodedPacket } from "dns-packet";
+import type { Logger } from "pino";
 
 
 export {
@@ -19,6 +20,7 @@ export class App {
   protected socket!: Socket;
 
   protected options!: OptionsInterface;
+  protected logger: Logger | null = null;
 
   constructor() {
     this.options = new Options();
@@ -30,8 +32,28 @@ export class App {
     this.options = options;
   }
 
+  public setLogger(logger: Logger): void {
+    this.logger = logger;
+  }
+
+  /**
+   * Получить logger или использовать fallback на console
+   */
+  protected getLogger(): Logger {
+    if (this.logger) {
+      return this.logger;
+    }
+    // Fallback на console если logger не установлен
+    return {
+      error: (...args: any[]) => console.error(...args),
+      warn: (...args: any[]) => console.warn(...args),
+      info: (...args: any[]) => console.log(...args),
+      debug: (...args: any[]) => console.debug(...args),
+    } as Logger;
+  }
+
   public async run() {
-    console.log('App.run');
+    this.getLogger().info('App.run');
     this.initSocket();
   }
 
@@ -47,15 +69,16 @@ export class App {
   }
 
   async onSocketBind() {
-    console.log(`DNS Прокси запущен на ${this.options.bindHost}:${this.options.bindPort}`);
+    this.getLogger().info(`DNS Прокси запущен на ${this.options.bindHost}:${this.options.bindPort}`);
   }
 
   async onSocketError(error: Error) {
+    const logger = this.getLogger();
     if (error.message.includes('EADDRINUSE')) {
-      console.error(`Ошибка: Порт ${this.options.bindPort} уже занят другим процессом.`);
-      console.error(`Используйте другой порт в конфигурации или остановите процесс, использующий этот порт.`);
+      logger.error(`Ошибка: Порт ${this.options.bindPort} уже занят другим процессом.`);
+      logger.error(`Используйте другой порт в конфигурации или остановите процесс, использующий этот порт.`);
     } else {
-      console.error(`Ошибка сервера:\n${error.stack}`);
+      logger.error({ err: error, stack: error.stack }, `Ошибка сервера`);
     }
     this.socket.close();
   }
@@ -70,28 +93,29 @@ export class App {
     msg: Buffer,
     remoteInfo: RemoteInfo
   ): Promise<void> {
-    console.debug('-- message:BEG: [msg, rinfo]', [msg, remoteInfo]);
+    const logger = this.getLogger();
+    logger.debug({ msg, remoteInfo }, '-- message:BEG: [msg, rinfo]');
     try {
 
       let dnsRequest: dnsPacketModule.DecodedPacket;
       try {
         dnsRequest = dnsPacket.decode(msg);
       } catch (e) {
-        console.error('Ошибка декодирования пакета:', e);
+        logger.error({ err: e }, 'Ошибка декодирования пакета');
         this.sendErrorResponse(msg, remoteInfo);
         return;
       }
 
-      console.debug('-- message:[dnsRequest]', [JSON.stringify(dnsRequest)]);
+      logger.debug({ dnsRequest: JSON.stringify(dnsRequest) }, '-- message:[dnsRequest]');
 
       const question: dnsPacketModule.Question | undefined = dnsRequest.questions?.[0];
       if (!question) {
-        console.error('DNS запрос не содержит вопросов');
+        logger.error('DNS запрос не содержит вопросов');
         this.sendErrorResponse(msg, remoteInfo);
         return;
       }
       const dnsName: string = question.name; // Имя DNS, которое запрашивается
-      console.log(`Запрос: ${dnsName} от ${remoteInfo.address}`);
+      logger.info({ dnsName, address: remoteInfo.address }, `Запрос: ${dnsName} от ${remoteInfo.address}`);
 
       const targetIp: string | string[] | dnsPacket.Answer[] | false = await this.getIp(dnsName);
       if (typeof targetIp === 'string' || Array.isArray(targetIp)) {
@@ -101,7 +125,7 @@ export class App {
 
       this.sendErrorResponse(dnsRequest, remoteInfo);
     } finally {
-      console.debug('-- message:END: [msg, rinfo]', [msg, remoteInfo]);
+      logger.debug({ msg, remoteInfo }, '-- message:END: [msg, rinfo]');
     }
   }
 
@@ -115,7 +139,8 @@ export class App {
     dnsRequest: dnsPacketModule.DecodedPacket | Buffer,
     remoteInfo: RemoteInfo
   ): void {
-    console.debug('-- sendErrorResponse:BEG: [dnsRequest, rinfo]', [dnsRequest, remoteInfo]);
+    const logger = this.getLogger();
+    logger.debug({ dnsRequest, remoteInfo }, '-- sendErrorResponse:BEG: [dnsRequest, rinfo]');
     try {
       const response: dnsPacketModule.Packet = {
         type: 'response',
@@ -155,7 +180,7 @@ export class App {
 
       this.socket.send(errResponse, remoteInfo.port, remoteInfo.address);
     } finally {
-      console.debug('-- sendErrorResponse:END');
+      logger.debug('-- sendErrorResponse:END');
     }
 
   }
@@ -171,8 +196,8 @@ export class App {
     remoteInfo: RemoteInfo,
     result: string | string[] | dnsPacket.Answer[]
   ): void {
-
-    console.debug('-- sendSuccessResponse:BEG: [response, rinfo]', [response, remoteInfo]);
+    const logger = this.getLogger();
+    logger.debug({ response, remoteInfo }, '-- sendSuccessResponse:BEG: [response, rinfo]');
     try {
       const dnsName: string = response.questions?.[0]?.name ?? '';
 
@@ -201,7 +226,7 @@ export class App {
       }
       this.socket.send(dnsPacket.encode(response), remoteInfo.port, remoteInfo.address);
     } finally {
-      console.debug('-- sendSuccessResponse:END');
+      logger.debug('-- sendSuccessResponse:END');
     }
   }
 
@@ -213,7 +238,8 @@ export class App {
   protected async getIp(
     dnsName: string
   ): Promise<string | dnsPacket.Answer[] | false> {
-    console.debug('-- getIp:BEG:[dnsName]', [dnsName]);
+    const logger = this.getLogger();
+    logger.debug({ dnsName }, '-- getIp:BEG:[dnsName]');
     try {
       let res = await this.getIpLocal(dnsName);
       if (res !== false) {
@@ -231,7 +257,7 @@ export class App {
       //res = await this.getIpUpstream(dnsName);
       return false;
     } finally {
-      console.debug('-- getIp:END');
+      logger.debug('-- getIp:END');
     }
   }
 
@@ -243,7 +269,8 @@ export class App {
   protected async getIpLocal(
     dnsName: string
   ): Promise<string | false> {
-    console.debug('-- getIpLocal:BEG:[dnsName]', [dnsName]);
+    const logger = this.getLogger();
+    logger.debug({ dnsName }, '-- getIpLocal:BEG:[dnsName]');
     try {
       const targetIp = this.options.hosts.get(dnsName);
 
@@ -252,7 +279,7 @@ export class App {
       }
       return false;
     } finally {
-      console.debug('-- getIpLocal:END');
+      logger.debug('-- getIpLocal:END');
     }
   }
 
@@ -260,7 +287,8 @@ export class App {
     dnsName: string,
     upstreamIp: string
   ): Promise<dnsPacket.Answer[] | false> {
-    console.debug('-- getIpUpstream:BEG:[dnsName]', [dnsName]);
+    const logger = this.getLogger();
+    logger.debug({ dnsName, upstreamIp }, '-- getIpUpstream:BEG:[dnsName]');
     try {
 
       const res: dnsPacket.Answer[] | false = await new Promise(
@@ -310,10 +338,10 @@ export class App {
           );
         }
       );
-      console.debug('-- getIpUpstream:[res]', [res]);
+      logger.debug({ res }, '-- getIpUpstream:[res]');
       return res;
     } finally {
-      console.debug('-- getIpUpstream:END');
+      logger.debug('-- getIpUpstream:END');
     }
   }
 
