@@ -11,3 +11,6 @@
 /src/**/*.d.ts
 /src/**/*.d.ts.map
 /src/app.ini
+
+# Environment files
+.run-dev.env

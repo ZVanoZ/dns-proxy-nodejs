@@ -1,6 +1,7 @@
 import pino from 'pino';
 import type { Logger } from 'pino';
 import { LogRotationService } from './LogRotationService.js';
+import { formatLogObject } from './LogFormatter.js';
 
 /**
  * Wrapper для Pino logger с автоматической ротацией файлов
@@ -130,11 +131,14 @@ export class RotatingLogger {
         targets,
       });
 
-      // Создаем новый logger
+      // Создаем новый logger с форматтером для перестановки полей
       this.baseLogger = pino(
         {
           level: this.logLevel,
           timestamp: pino.stdTimeFunctions.isoTime,
+          formatters: {
+            log: formatLogObject,
+          },
         },
         transport
       );

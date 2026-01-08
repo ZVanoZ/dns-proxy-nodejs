@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node scripts/setup-config.js setup && tsx --inspect src/main.ts",
+    "dev": "node scripts/load-env-and-run.js 'node scripts/setup-config.js setup && tsx --inspect src/main.ts'",
     "dev:debug": "node scripts/setup-config.js setup && tsx --inspect-brk src/main.ts",
     "build": "node scripts/clean-dist.js && node scripts/build-dependencies.js && node scripts/build-app.js && node scripts/setup-config.js build",
     "start": "node scripts/setup-config.js setup && cd dist && node app.js"

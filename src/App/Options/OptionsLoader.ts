@@ -4,7 +4,7 @@ import { Options } from "./index.js";
 
 export async function loadFromIni(iniPath: string): Promise<Options> {
   const options = new Options();
-  
+
   try {
     const iniContent = await fs.readFile(iniPath, 'utf-8');
     const parsedIni = ini.parse(iniContent);
@@ -13,7 +13,7 @@ export async function loadFromIni(iniPath: string): Promise<Options> {
     if (parsedIni.app?.host) {
       options.bindHost = parsedIni.app.host;
     }
-    
+
     if (parsedIni.app?.port) {
       const port = parseInt(parsedIni.app.port, 10);
       if (!isNaN(port) && port > 0 && port < 65536) {
@@ -29,12 +29,11 @@ export async function loadFromIni(iniPath: string): Promise<Options> {
     }
 
     if (parsedIni['upstream-dns']) {
+      // Преобразуем объект в массив строк, сортируя по ключу
       options.upstreamDnsList = Object.entries(parsedIni['upstream-dns'])
-        .map(([key, value]) => {
-          const map = new Map();
-          map.set(parseInt(key, 10), value as string);
-          return map;
-        });
+        .map(([key, value]) => [parseInt(key, 10), value as string] as [number, string])
+        .sort(([a], [b]) => a - b) // Сортируем по ключу
+        .map(([, value]) => value); // Берем только значения
     }
   } catch (error) {
     if (error instanceof Error) {

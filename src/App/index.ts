@@ -94,23 +94,24 @@ export class App {
     remoteInfo: RemoteInfo
   ): Promise<void> {
     const logger = this.getLogger();
-    logger.debug({ msg, remoteInfo }, '-- message:BEG: [msg, rinfo]');
+    logger.trace({ msg, remoteInfo }, 'App.onSocketMessage:BEG: [msg, rinfo]');
     try {
 
       let dnsRequest: dnsPacketModule.DecodedPacket;
       try {
         dnsRequest = dnsPacket.decode(msg);
       } catch (e) {
-        logger.error({ err: e }, 'Ошибка декодирования пакета');
+        logger.error({ err: e }, 'App.onSocketMessage: Ошибка декодирования пакета');
         this.sendErrorResponse(msg, remoteInfo);
         return;
       }
-
-      logger.debug({ dnsRequest: JSON.stringify(dnsRequest) }, '-- message:[dnsRequest]');
+      logger.trace({ dnsRequest: JSON.stringify(dnsRequest) }, 'App.onSocketMessage:[dnsRequest]');
 
       const question: dnsPacketModule.Question | undefined = dnsRequest.questions?.[0];
+      logger.debug({ question }, 'App.onSocketMessage:[question]');
+
       if (!question) {
-        logger.error('DNS запрос не содержит вопросов');
+        logger.error('App.onSocketMessage: DNS запрос не содержит вопросов');
         this.sendErrorResponse(msg, remoteInfo);
         return;
       }
@@ -125,7 +126,7 @@ export class App {
 
       this.sendErrorResponse(dnsRequest, remoteInfo);
     } finally {
-      logger.debug({ msg, remoteInfo }, '-- message:END: [msg, rinfo]');
+      logger.trace({ msg, remoteInfo }, 'App.onSocketMessage:END: [msg, rinfo]');
     }
   }
 
@@ -140,7 +141,7 @@ export class App {
     remoteInfo: RemoteInfo
   ): void {
     const logger = this.getLogger();
-    logger.debug({ dnsRequest, remoteInfo }, '-- sendErrorResponse:BEG: [dnsRequest, rinfo]');
+    logger.trace({ dnsRequest, remoteInfo }, 'App.sendErrorResponse:BEG: [dnsRequest, rinfo]');
     try {
       const response: dnsPacketModule.Packet = {
         type: 'response',
@@ -180,7 +181,7 @@ export class App {
 
       this.socket.send(errResponse, remoteInfo.port, remoteInfo.address);
     } finally {
-      logger.debug('-- sendErrorResponse:END');
+      logger.trace('App.sendErrorResponse:END');
     }
 
   }
@@ -197,7 +198,7 @@ export class App {
     result: string | string[] | dnsPacket.Answer[]
   ): void {
     const logger = this.getLogger();
-    logger.debug({ response, remoteInfo }, '-- sendSuccessResponse:BEG: [response, rinfo]');
+    logger.trace({ response, remoteInfo }, 'App.sendSuccessResponse:BEG: [response, rinfo]');
     try {
       const dnsName: string = response.questions?.[0]?.name ?? '';
 
@@ -226,7 +227,7 @@ export class App {
       }
       this.socket.send(dnsPacket.encode(response), remoteInfo.port, remoteInfo.address);
     } finally {
-      logger.debug('-- sendSuccessResponse:END');
+      logger.trace('App.sendSuccessResponse:END');
     }
   }
 
@@ -239,25 +240,37 @@ export class App {
     dnsName: string
   ): Promise<string | dnsPacket.Answer[] | false> {
     const logger = this.getLogger();
-    logger.debug({ dnsName }, '-- getIp:BEG:[dnsName]');
+    logger.trace({ dnsName }, 'App.getIp:BEG:[dnsName]');
     try {
       let res = await this.getIpLocal(dnsName);
       if (res !== false) {
+        logger.info({ dnsName, ip: res }, 'App.getIp: found in hosts list');
         return res;
       }
-      for (const upstreamDns of this.options.upstreamDnsList) {
-        const upstreamIp: any = upstreamDns.get(0);
-        if (typeof upstreamIp === 'string') {
-          const res: false | dnsPacket.Answer[] = await this.getIpUpstream(dnsName, upstreamIp);
-          if (res !== false) {
-            return res;
-          }
+      logger.debug({ dnsName, ip: res }, 'App.getIp: not found in hosts list');
+
+      for (const upstreamIp of this.options.upstreamDnsList) {
+        if (typeof upstreamIp !== 'string') {
+          logger.warn({ dnsName, upstreamIp }, 'App.getIp: invalid upstream DNS-server. Skip.');
+          continue;
         }
+
+        logger.debug({ dnsName, upstreamIp }, 'App.getIp: will try to get IP from upstream DNS-server');
+        const res: false | dnsPacket.Answer[] = await this.getIpUpstream(dnsName, upstreamIp);
+        if (res === false) {
+          logger.debug({ dnsName, ip: res, upstreamIp }, 'App.getIp: not found in upstream DNS-server');
+          continue;
+        }
+        logger.info({ dnsName, ip: res, upstreamIp }, 'App.getIp: found in upstream DNS-server');
+        return res;
+
       }
-      //res = await this.getIpUpstream(dnsName);
+
+      logger.info({ dnsName }, 'App.getIp: not found at all');
+
       return false;
     } finally {
-      logger.debug('-- getIp:END');
+      logger.trace('App.getIp:END');
     }
   }
 
@@ -270,16 +283,17 @@ export class App {
     dnsName: string
   ): Promise<string | false> {
     const logger = this.getLogger();
-    logger.debug({ dnsName }, '-- getIpLocal:BEG:[dnsName]');
+    logger.trace({ dnsName }, 'App.getIpLocal:BEG:[dnsName]');
     try {
       const targetIp = this.options.hosts.get(dnsName);
 
       if (targetIp) {
+        logger.info({ dnsName, targetIp }, 'App.getIpLocal: found in local hosts list');
         return targetIp;
       }
       return false;
     } finally {
-      logger.debug('-- getIpLocal:END');
+      logger.trace('App.getIpLocal:END');
     }
   }
 
@@ -288,8 +302,9 @@ export class App {
     upstreamIp: string
   ): Promise<dnsPacket.Answer[] | false> {
     const logger = this.getLogger();
-    logger.debug({ dnsName, upstreamIp }, '-- getIpUpstream:BEG:[dnsName]');
+    logger.trace({ dnsName, upstreamIp }, 'App.getIpUpstream:BEG:[dnsName]');
     try {
+      logger.debug({ dnsName, upstreamIp }, 'App.getIpUpstream');
 
       const res: dnsPacket.Answer[] | false = await new Promise(
         (resolve) => {
@@ -330,6 +345,8 @@ export class App {
             upstreamIp,
             (err) => {
               if (err) {
+                logger.trace({ err }, 'App.getIpUpstream:[err]');
+
                 clearTimeout(timeout);
                 client.close();
                 resolve(false);
@@ -338,10 +355,10 @@ export class App {
           );
         }
       );
-      logger.debug({ res }, '-- getIpUpstream:[res]');
+      logger.trace({ res }, 'App.getIpUpstream:[res]');
       return res;
     } finally {
-      logger.debug('-- getIpUpstream:END');
+      logger.trace('App.getIpUpstream:END');
     }
   }
 

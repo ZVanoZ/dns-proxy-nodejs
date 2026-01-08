@@ -2,7 +2,7 @@ import pino from 'pino';
 import type { Logger } from 'pino';
 import { LogRotationService } from './LogRotationService.js';
 import { RotatingLogger } from './RotatingLogger.js';
-import { join } from 'node:path';
+import { formatLogObject } from './LogFormatter.js';
 
 /**
  * Фабрика для создания настроенного logger'а
@@ -57,6 +57,8 @@ export class LoggerFactory {
           colorize: true,
           translateTime: 'HH:MM:ss Z',
           ignore: 'pid,hostname',
+          messageFormat: '{msg}',
+          singleLine: false,
         },
         level: logLevel,
       });
@@ -76,11 +78,14 @@ export class LoggerFactory {
       targets,
     });
 
-    // Создаем базовый logger
+    // Создаем базовый logger с форматтером для перестановки полей
     const baseLogger = pino(
       {
         level: logLevel,
         timestamp: pino.stdTimeFunctions.isoTime,
+        formatters: {
+          log: formatLogObject,
+        },
       },
       transport
     );

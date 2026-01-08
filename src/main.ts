@@ -2,14 +2,18 @@ import { App } from "./App/index.js";
 import { loadFromIni } from "./App/Options/OptionsLoader.js";
 import { LoggerFactory } from "./Logger/index.js";
 
+// console.trace('process.env', process.env);
+
 // Инициализируем logger перед запуском приложения
 LoggerFactory.create().then(
   async (logger) => {
+    console.debug('-- Создан logger:', logger);
     const app = new App();
     app.setLogger(logger);
 
     loadFromIni('./config/app.ini').then(
       async (options) => {
+        console.debug('-- Считаны настройки приложения options:', options);
         app.setOptions(options);
         await app.run();
       }
