@@ -1,0 +1,28 @@
+# Development образ для запуска из исходников
+# Используем Node.js 20 LTS (совместимо с package.json: требует >=20.17.0 или >=22.9.0)
+FROM node:20.17-alpine
+
+WORKDIR /app
+
+# Копируем файлы зависимостей
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Устанавливаем все зависимости (включая dev)
+RUN npm ci
+
+# Копируем исходный код и скрипты
+COPY . .
+
+# Создаем пользователя без фиксированного GID/UID (система назначит свободные значения)
+RUN addgroup -S appuser && \
+    adduser -S -G appuser appuser && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+# Открываем порты
+EXPOSE 5053/udp 53/udp
+
+# По умолчанию запускаем dev режим
+CMD ["sh", "-c", "node scripts/setup-config.js setup && tsx --inspect src/main.ts"]

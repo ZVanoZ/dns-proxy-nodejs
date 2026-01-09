@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+dist
+tmp
+logs
+*.log
+.git
+.gitignore
+.env
+.run-dev.env
+.run-prod.env
+*.md
+.vscode
+.idea
+*.swp
+*.swo
+*~

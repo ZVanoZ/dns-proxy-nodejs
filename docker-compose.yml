@@ -1,0 +1,47 @@
+version: '3.8'
+
+# Использование профилей для разделения DEV и PROD
+# Запуск DEV:  docker-compose --profile dev up
+# Запуск PROD: docker-compose --profile prod up
+# Или через npm: npm run docker:dev / npm run docker:prod
+
+services:
+  dns-proxy-dev:
+    profiles:
+      - dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: dns-proxy-dev
+    network_mode: host
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./dist:/app/dist
+      - ./scripts:/app/scripts
+      - ./.run-dev.env:/app/.run-dev.env
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .run-dev.env
+    command: sh -c "node scripts/setup-config.js setup && tsx --inspect src/main.ts"
+    restart: unless-stopped
+
+  dns-proxy-prod:
+    profiles:
+      - prod
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dns-proxy-prod
+    network_mode: host
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+      - ./scripts:/app/scripts
+    env_file:
+      - .run-prod.env
+    command: sh -c "node scripts/setup-config.js setup && node dist/app.js"
+    restart: always
+    cap_add:
+      - NET_BIND_SERVICE

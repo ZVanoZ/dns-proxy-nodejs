@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  dns-proxy-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: dns-proxy-dev
+    network_mode: host
+    volumes:
+      - ./src:/app/src
+      - ./config:/app/config
+      - ./dist:/app/dist
+      - ./scripts:/app/scripts
+      - ./.run-dev.env:/app/.run-dev.env
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .run-dev.env
+    command: sh -c "node scripts/setup-config.js setup && tsx --inspect src/main.ts"
+    restart: unless-stopped
