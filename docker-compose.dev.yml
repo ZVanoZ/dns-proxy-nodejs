@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   dns-proxy-dev:
     build:
@@ -17,5 +15,5 @@ services:
       - NODE_ENV=development
     env_file:
       - .run-dev.env
-    command: sh -c "node scripts/setup-config.js setup && tsx --inspect src/main.ts"
+    command: sh -c "node scripts/setup-config.js setup && npx tsx --inspect src/main.ts"
     restart: unless-stopped

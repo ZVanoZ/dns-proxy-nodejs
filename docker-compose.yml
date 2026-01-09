@@ -1,8 +1,6 @@
-version: '3.8'
-
 # Использование профилей для разделения DEV и PROD
-# Запуск DEV:  docker-compose --profile dev up
-# Запуск PROD: docker-compose --profile prod up
+# Запуск DEV:  docker compose --profile dev up
+# Запуск PROD: docker compose --profile prod up
 # Или через npm: npm run docker:dev / npm run docker:prod
 
 services:
@@ -24,7 +22,7 @@ services:
       - NODE_ENV=development
     env_file:
       - .run-dev.env
-    command: sh -c "node scripts/setup-config.js setup && tsx --inspect src/main.ts"
+    command: sh -c "node scripts/setup-config.js setup && npx tsx --inspect src/main.ts"
     restart: unless-stopped
 
   dns-proxy-prod:

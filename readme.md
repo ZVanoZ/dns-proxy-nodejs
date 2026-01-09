@@ -18,7 +18,7 @@
 1. Запуск скомпилированного приложения из папки "./dist"
 2. Запуск из исходников в режиме PROD
 3. Запуск из исходников в режиме DEV
-4. Запуск через Docker, либо docker-compose - см. [DOCKER-OPTIONS.md](DOCKER-OPTIONS.md).
+4. Запуск через Docker или "docker compose" - см. [DOCKER-OPTIONS.md](DOCKER-OPTIONS.md).
 
 Перед запуском подготовить:
 * "config/app.ini" на основе "config/app.ini.dist" для всех режимов.

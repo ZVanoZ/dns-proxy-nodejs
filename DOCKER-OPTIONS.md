@@ -128,7 +128,7 @@ docker compose --profile dev logs -f dns-proxy-dev
 docker compose --profile dev down dns-proxy-dev
 
 # Запуск с отладчиком
-docker compose --profile dev run --rm dns-proxy-dev sh -c 'node scripts/setup-config.js setup && tsx --inspect-brk src/main.ts'
+docker compose --profile dev run --rm dns-proxy-dev sh -c 'node scripts/setup-config.js setup && npx tsx --inspect-brk src/main.ts'
 ```
 
 **PROD режим:**
@@ -168,7 +168,7 @@ docker compose --profile dev --profile prod down -v
 docker rmi dns-proxy-nodejs-dns-proxy-dev dns-proxy-nodejs-dns-proxy-prod
 ```
 
-**Примечание:** В зависимости от версии Docker, команда может быть `docker-compose` (старая версия) или `docker compose` (новая версия, встроенная в Docker CLI). В npm скриптах используется `docker-compose` для совместимости.
+**Примечание:** В проекте используется `docker compose` (с пробелом) - это встроенная команда Docker CLI начиная с версии 20.10+. Если у вас установлена старая версия Docker с отдельной утилитой `docker-compose` (с дефисом), вам нужно либо обновить Docker, либо установить совместимость через алиас.
 
 #### Вариант C: Через docker (без compose)
 
@@ -231,7 +231,7 @@ docker run --rm \
   --env-file .run-dev.env \
   -e NODE_ENV=development \
   dns-proxy-nodejs:dev \
-  sh -c "node scripts/setup-config.js setup && tsx --inspect-brk src/main.ts"
+  sh -c "node scripts/setup-config.js setup && npx tsx --inspect-brk src/main.ts"
 ```
 
 **PROD режим:**
@@ -321,12 +321,12 @@ docker system prune -a
 # DEV режим
 npm run docker:dev:separate
 # или
-docker-compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 
 # PROD режим
 npm run docker:prod:separate
 # или
-docker-compose -f docker-compose.prod.yml up
+docker compose -f docker-compose.prod.yml up
 ```
 
 ---
@@ -342,17 +342,17 @@ docker-compose -f docker-compose.prod.yml up
 - Простота
 
 ### Недостатки:
-- Можно случайно запустить оба сервиса командой `docker-compose up`
+- Можно случайно запустить оба сервиса командой `docker compose up`
 - Менее явное разделение
 
 ### Использование:
 
 ```bash
 # DEV режим
-docker-compose up dns-proxy-dev
+docker compose up dns-proxy-dev
 
 # PROD режим
-docker-compose up dns-proxy-prod
+docker compose up dns-proxy-prod
 ```
 
 ---
