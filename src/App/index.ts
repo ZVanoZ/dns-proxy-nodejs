@@ -116,7 +116,7 @@ export class App {
         return;
       }
       const dnsName: string = question.name; // Имя DNS, которое запрашивается
-      logger.info({ dnsName, address: remoteInfo.address }, `Запрос: ${dnsName} от ${remoteInfo.address}`);
+      logger.debug({ dnsName, address: remoteInfo.address }, 'App.onSocketMessage');
 
       const targetIp: string | string[] | dnsPacket.Answer[] | false = await this.getIp(dnsName);
       if (typeof targetIp === 'string' || Array.isArray(targetIp)) {
@@ -177,9 +177,9 @@ export class App {
           ).id;
         }
       }
-      const errResponse = dnsPacket.encode(response);
-
-      this.socket.send(errResponse, remoteInfo.port, remoteInfo.address);
+      const answer = dnsPacket.encode(response);
+      this.getLogger().warn({ answer, remoteInfo }, 'App.sendErrorResponse:[answer]');
+      this.socket.send(answer, remoteInfo.port, remoteInfo.address);
     } finally {
       logger.trace('App.sendErrorResponse:END');
     }
@@ -225,7 +225,10 @@ export class App {
         }
         response.answers?.push(answer);
       }
-      this.socket.send(dnsPacket.encode(response), remoteInfo.port, remoteInfo.address);
+      const answer = dnsPacket.encode(response);
+      this.getLogger().info({ responseAnswers: response.answers }, 'App.sendSuccessResponse:[answer]');
+      this.getLogger().debug({ responseAnswers: response.answers, answer }, 'App.sendSuccessResponse:[answer]');
+      this.socket.send(answer, remoteInfo.port, remoteInfo.address);
     } finally {
       logger.trace('App.sendSuccessResponse:END');
     }
@@ -249,21 +252,34 @@ export class App {
       }
       logger.debug({ dnsName, ip: res }, 'App.getIp: not found in hosts list');
 
-      for (const upstreamIp of this.options.upstreamDnsList) {
-        if (typeof upstreamIp !== 'string') {
-          logger.warn({ dnsName, upstreamIp }, 'App.getIp: invalid upstream DNS-server. Skip.');
+      // Перебираем маски из masked-dns в порядке их указания в файле
+      for (const [mask, chainName] of this.options.maskedDns.entries()) {
+        // Проверяем, соответствует ли dnsName маске
+        if (!this.matchDnsMask(dnsName, mask)) {
           continue;
         }
 
-        logger.debug({ dnsName, upstreamIp }, 'App.getIp: will try to get IP from upstream DNS-server');
-        const res: false | dnsPacket.Answer[] = await this.getIpUpstream(dnsName, upstreamIp);
-        if (res === false) {
-          logger.debug({ dnsName, ip: res, upstreamIp }, 'App.getIp: not found in upstream DNS-server');
-          continue;
-        }
-        logger.info({ dnsName, ip: res, upstreamIp }, 'App.getIp: found in upstream DNS-server');
-        return res;
+        logger.debug({ dnsName, mask, chainName }, 'App.getIp: dnsName matches mask, using chain');
 
+        // Извлекаем цепочку DNS-серверов по названию
+        const dnsChain = this.options.upstreamDnsChains.get(chainName);
+        if (!dnsChain || dnsChain.length === 0) {
+          logger.warn({ dnsName, chainName }, 'App.getIp: chain not found or empty. Skip.');
+          break;//@NOTE: проверяем только первую цепочку по маске
+        }
+
+        // Перебираем DNS-серверы в цепочке в порядке их указания
+        for (const serverAddress of dnsChain) {
+          logger.debug({ dnsName, serverAddress, chainName }, 'App.getIp: will try to get IP from upstream DNS-server');
+          const res: false | dnsPacket.Answer[] = await this.getIpUpstream(dnsName, serverAddress);
+          if (res === false) {
+            logger.debug({ dnsName, serverAddress, chainName, res }, 'App.getIp: not found in upstream DNS-server');
+            continue;
+          }
+          logger.debug({ dnsName, serverAddress, chainName, res }, 'App.getIp: found in upstream DNS-server');
+          return res;
+        }
+        break;//@NOTE: проверяем только первую цепочку по маске
       }
 
       logger.info({ dnsName }, 'App.getIp: not found at all');
@@ -297,14 +313,71 @@ export class App {
     }
   }
 
+  /**
+   * Проверяет, соответствует ли DNS-имя маске
+   * @param dnsName - DNS имя для проверки
+   * @param mask - Маска (например, "*.company.local" или "*")
+   * @returns true если соответствует, false иначе
+   */
+  protected matchDnsMask(
+    dnsName: string,
+    mask: string
+  ): boolean {
+    // Если маска - просто "*", то соответствует любому имени
+    if (mask === '*') {
+      return true;
+    }
+
+    // Преобразуем маску в регулярное выражение
+    // Экранируем специальные символы и заменяем * на .*
+    const regexPattern = mask
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Экранируем специальные символы
+      .replace(/\*/g, '.*'); // Заменяем * на .*
+
+    const regex = new RegExp(`^${regexPattern}$`, 'i');
+
+    const res = regex.test(dnsName);
+    this.getLogger().trace({ dnsName, mask, res }, 'App.matchDnsMask');
+    return res;
+  }
+
+  /**
+   * Парсит адрес сервера в формате IP:PORT
+   * @param serverAddress - Адрес в формате "IP:PORT" или просто "IP"
+   * @returns Объект с ip и port
+   */
+  protected parseServerAddress(
+    serverAddress: string
+  ): {
+    ip: string;
+    port: number
+  } {
+    const parts = serverAddress.split(':');
+    if (parts.length < 1 || !parts[0]) {
+      this.getLogger().error({ serverAddress }, 'App.parseServerAddress: invalid serverAddress');
+      throw new Error('Invalid serverAddress');
+    }
+    const ip: string = parts[0];
+    const port: number = parts.length > 1 && parts[1] ? parseInt(parts[1], 10) : 53;
+
+    const res = {
+      ip,
+      port: isNaN(port) ? 53 : port
+    };
+    this.getLogger().trace({ serverAddress, res }, 'App.parseServerAddress');
+    return res;
+  }
+
   async getIpUpstream(
     dnsName: string,
-    upstreamIp: string
+    serverAddress: string
   ): Promise<dnsPacket.Answer[] | false> {
     const logger = this.getLogger();
-    logger.trace({ dnsName, upstreamIp }, 'App.getIpUpstream:BEG:[dnsName]');
+    logger.trace({ dnsName, serverAddress }, 'App.getIpUpstream:BEG:[dnsName]');
     try {
-      logger.debug({ dnsName, upstreamIp }, 'App.getIpUpstream');
+      // Парсим адрес сервера (поддерживаем формат IP:PORT)
+      const { ip, port } = this.parseServerAddress(serverAddress);
+      logger.debug({ dnsName, ip, port }, 'App.getIpUpstream');
 
       const res: dnsPacket.Answer[] | false = await new Promise(
         (resolve) => {
@@ -341,8 +414,8 @@ export class App {
 
           client.send(
             query,
-            53,
-            upstreamIp,
+            port,
+            ip,
             (err) => {
               if (err) {
                 logger.trace({ err }, 'App.getIpUpstream:[err]');

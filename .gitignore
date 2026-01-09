@@ -13,4 +13,5 @@
 /src/app.ini
 
 # Environment files
-.run-dev.env
+*.env
+

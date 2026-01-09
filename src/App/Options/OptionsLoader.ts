@@ -28,12 +28,28 @@ export async function loadFromIni(iniPath: string): Promise<Options> {
       options.hosts = new Map(Object.entries(parsedIni.hosts));
     }
 
+    // Загрузка именованных цепочек DNS-серверов
     if (parsedIni['upstream-dns']) {
-      // Преобразуем объект в массив строк, сортируя по ключу
-      options.upstreamDnsList = Object.entries(parsedIni['upstream-dns'])
-        .map(([key, value]) => [parseInt(key, 10), value as string] as [number, string])
-        .sort(([a], [b]) => a - b) // Сортируем по ключу
-        .map(([, value]) => value); // Берем только значения
+      const upstreamDnsSection = parsedIni['upstream-dns'];
+      for (const [chainName, chainValue] of Object.entries(upstreamDnsSection)) {
+        // Значение - это строка вида "IP:PORT,IP:PORT,..."
+        const servers = (chainValue as string)
+          .split(',')
+          .map(server => server.trim())
+          .filter(server => server.length > 0);
+        options.upstreamDnsChains.set(chainName, servers);
+      }
+    }
+
+    // Загрузка масок DNS-имен
+    if (parsedIni['masked-dns']) {
+      const maskedDnsSection = parsedIni['masked-dns'];
+      // Сохраняем порядок из файла, используя Object.entries
+      for (const [mask, chainName] of Object.entries(maskedDnsSection)) {
+        // Убираем кавычки из маски, если они есть
+        const cleanMask = mask.replace(/^["']|["']$/g, '');
+        options.maskedDns.set(cleanMask, chainName as string);
+      }
     }
   } catch (error) {
     if (error instanceof Error) {

@@ -43,9 +43,18 @@ function loadEnvFile(envPath) {
   return env;
 }
 
-// Загружаем переменные из .run-dev.env
+// Получаем имя файла окружения из аргументов
+const envFileName = process.argv[2];
+
+if (!envFileName) {
+  console.error("✗ Не указан файл окружения");
+  console.error("Использование: node load-env-and-run.js <env-file> <command> [args...]");
+  process.exit(1);
+}
+
+// Загружаем переменные из указанного файла окружения
 const projectRoot = path.resolve(__dirname, "..");
-const envFile = path.join(projectRoot, ".run-dev.env");
+const envFile = path.join(projectRoot, envFileName);
 const envVars = loadEnvFile(envFile);
 
 // Устанавливаем переменные окружения в текущий процесс
@@ -53,12 +62,12 @@ Object.keys(envVars).forEach((key) => {
   process.env[key] = envVars[key];
 });
 
-// Получаем команду и аргументы из аргументов скрипта
-const commandLine = process.argv.slice(2).join(" ");
+// Получаем команду и аргументы из оставшихся аргументов скрипта
+const commandLine = process.argv.slice(3).join(" ");
 
 if (!commandLine) {
   console.error("✗ Не указана команда для выполнения");
-  console.error("Использование: node load-env-and-run.js <command> [args...]");
+  console.error("Использование: node load-env-and-run.js <env-file> <command> [args...]");
   process.exit(1);
 }
 

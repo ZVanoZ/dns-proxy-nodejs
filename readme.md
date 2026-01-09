@@ -12,20 +12,128 @@
 
 ## Как запустить?
 
-1. Инициализируйте проект:
+Есть несколько вариантов запуска.
+1. Запуск скомпилированного приложения из папки "./dist"
+2. Запуск из исходников в режиме PROD
+3. Запуск из исходников в режиме DEV
+
+Перед запуском подготовить:
+* "config/app.ini" на основе "config/app.ini.dist" для всех режимов.
+* .run-prod.env из dist.run-prod.env для режима PROD
+* .run-dev.env из dist.run-dev.env для режима DEV 
+
+---
+
+* Запуск из исходников в режиме DEV
+
+1. Установите зависимости:
 
 ```shell
-npm init -y
+npm install
 ```
 
-2. Установите зависимости:
+2. Запуск
+
+DEV без пошагового отладчика
+```sh
+npm run dev
+```
+
+DEV с пошаговым отладчиком
+```sh
+npm run dev:debug
+```
+
+3. Проверка
 
 ```shell
-npm install dns-packet ini
+nslookup -retry=0 -port=5053 google.com 127.0.0.1
 ```
 
-3. Запустите:
-1. От пользователя root
+---
+
+* Запуск из исходников в режиме PROD
+
+1. Установите зависимости:
+
+```shell
+npm install
+```
+
+2. Настройте проброс запросов с порта 53 на 5053
+
+```shell
+# Проверка текущих правил iptables
+sudo iptables -t nat -L -n -v
+
+# Добавление правил проброса порта 53 на 5053 для UDP
+# Примечание: TCP не требуется, так как DNS-proxy работает только с UDP
+sudo iptables -t nat -A PREROUTING -p udp --dport 53 -j REDIRECT --to-port 5053
+
+# Для локальных подключений (127.0.0.1)
+sudo iptables -t nat -A OUTPUT -p udp --dport 53 -j REDIRECT --to-port 5053
+
+# Сохранение правил
+# Вариант 1: Прямое сохранение в файл (работает везде)
+sudo mkdir -p /etc/iptables
+sudo iptables-save | sudo tee /etc/iptables/rules.v4
+
+# Вариант 2: Если установлен netfilter-persistent (Ubuntu/Debian)
+# sudo apt-get install iptables-persistent
+# sudo netfilter-persistent save
+
+# Вариант 3: Для автоматической загрузки правил при загрузке системы
+# можно добавить в /etc/rc.local или создать systemd service
+```
+
+* Откат
+```shell
+# 1. Удаление активных правил
+# Удаление правила для внешних пакетов (PREROUTING)
+sudo iptables -t nat -D PREROUTING -p udp --dport 53 -j REDIRECT --to-port 5053
+
+# Удаление правила для локальных пакетов (OUTPUT)
+sudo iptables -t nat -D OUTPUT -p udp --dport 53 -j REDIRECT --to-port 5053
+
+# 2. Обновление сохраненной конфигурации
+sudo iptables-save | sudo tee /etc/iptables/rules.v4
+
+#Если вы хотите вообще удалить этот файл и папку (если они вам больше не нужны):
+#sudo rm /etc/iptables/rules.v4
+#sudo rmdir /etc/iptables
+
+
+# 3. Проверка результата
+# Убедитесь, что в таблице nat больше нет редиректов на порт 5053:
+sudo iptables -t nat -L -n -v
+```
+
+3. Запуск
+
+PROD без пошагового отладчика
+```sh
+npm run prod:tsx
+```
+
+4. Проверка
+
+Для не привилегированного порта 5053. 
+```shell
+nslookup -retry=0 -port=5053 google.com 127.0.0.1
+```
+
+Для стандартного порта 53.
+```shell
+nslookup -retry=0 google.com 127.0.0.1
+```
+
+---
+
+* Запуск скомпилированного приложения
+
+1. От пользователя root, если приложение запускается на порту 53 и не заморачиваемся с выдачей прав
+
+@TODO: проверить актуальность информации
 
 ```shell
 sudo node ./app/index.js
@@ -34,7 +142,12 @@ sudo node ./app/index.js
 node ./app/index.js
 ```
 
-2. От текущего пользователя
+2. От текущего пользователя, с выдачей привилегий через setcap
+
+@TODO: проверить актуальность информации
+
+@WARN: setcap работает только с elf-файлами. В *.sh нет заголовка, где можно установить бит прав.
+
    ```bash
    ls -la run-app.sh
    ```
