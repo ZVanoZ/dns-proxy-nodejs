@@ -16,6 +16,7 @@ services:
       - ./src:/app/src
       - ./config:/app/config
       - ./dist:/app/dist
+      - ./logs:/app/logs
       - ./scripts:/app/scripts
       - ./.run-dev.env:/app/.run-dev.env
     environment:
