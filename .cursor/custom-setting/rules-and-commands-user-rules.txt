@@ -1,0 +1,5 @@
+Use strict types, if it possible
+Use OOP, if it possible
+Give recomendations for optimize tokens spend
+Always answer in russian language
+Follow best practices and design patterns for the language, framework and project

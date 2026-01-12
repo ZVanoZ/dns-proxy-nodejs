@@ -15,3 +15,4 @@
 # Environment files
 *.env
 
+/config/test.config.ini
