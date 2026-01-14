@@ -197,6 +197,28 @@ nslookup -retry=0 -port=5053 my-invalid-host.local 127.0.0.1
 git clone https://github.com/vanzan01/cursor-memory-bank.git ./tmp/cursor-memory-bank
 cp -vR ./tmp/cursor-memory-bank/.cursor/* ./.cursor/
 ```
+2. Инициализируем  "vanzan01/cursor-memory-bank"
+```text
+* Открываем новый чат AI в режиме "Agent"
+* Вбиваем текст "/van" и нажимаем запустить
+```
+В результате, создается папка ./memory-bank](memory-bank) с таким содержимым
+```text
+ls -l ./memory-bank/
+итого 44
+-rw-r--r-- 1 ivan ivan  799 янв 14 17:46 activeContext.md
+drwxr-xr-x 2 ivan ivan 4096 янв 14 17:45 archive
+drwxr-xr-x 2 ivan ivan 4096 янв 14 17:45 creative
+-rw-r--r-- 1 ivan ivan 1754 янв 14 17:46 productContext.md
+-rw-r--r-- 1 ivan ivan  953 янв 14 17:46 progress.md
+-rw-r--r-- 1 ivan ivan 1943 янв 14 17:46 projectbrief.md
+drwxr-xr-x 2 ivan ivan 4096 янв 14 17:45 reflection
+-rw-r--r-- 1 ivan ivan 1715 янв 14 17:46 style-guide.md
+-rw-r--r-- 1 ivan ivan 2536 янв 14 17:46 systemPatterns.md
+-rw-r--r-- 1 ivan ivan  438 янв 14 17:46 tasks.md
+-rw-r--r-- 1 ivan ivan 2139 янв 14 17:46 techContext.md
+```
+
 
 
 
