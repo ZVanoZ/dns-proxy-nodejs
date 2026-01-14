@@ -1,18 +1,20 @@
-/node_modules/
-/tmp/
-/dist/
+# Конфигурационные файлы
+config/*
+!config/*.dist
 
-/config/app.ini
+/dist/
 /logs/
+/node_modules/
+
 
 # Скомпилированные файлы в src/
 /src/**/*.js
 /src/**/*.js.map
 /src/**/*.d.ts
 /src/**/*.d.ts.map
-/src/app.ini
 
-# Environment files
+/tmp/
+
+# Переменные окружения для приложения, либо для Docker
 *.env
 
-/config/test.config.ini
