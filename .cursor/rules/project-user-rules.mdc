@@ -1,9 +1,0 @@
----
-alwaysApply: true
----
-# Создано через настройки @see: Cursor Settings/Rules and Commands/Project rules
-# Настройка правил AI для проекта.
-
-Use object oriented programming.
-Use the latest stable version of NodeJS.
-Try to type all variables and class fields in *.ts files.

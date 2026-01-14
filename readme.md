@@ -190,6 +190,18 @@ nslookup -retry=0 -port=5053 my-invalid-host.local 127.0.0.1
 
 ---
 
+## Использование "vanzan01/cursor-memory-bank" в проекте
+
+1. Копируем базовые файлы
+```text
+git clone https://github.com/vanzan01/cursor-memory-bank.git ./tmp/cursor-memory-bank
+cp -vR ./tmp/cursor-memory-bank/.cursor/* ./.cursor/
+```
+
+
+
+---
+
 ## RAW
 
 ```bash
