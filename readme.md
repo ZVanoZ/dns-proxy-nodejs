@@ -10,6 +10,10 @@
 
 Альфа. Функционал работает. Выполняется рефакторинг и тестирование.
 
+* Прогресс [progress.md](memory-bank/progress.md)
+* Активная задача [activeContext.md](memory-bank/activeContext.md)
+* Список задач [tasks.md](memory-bank/tasks.md)
+
 ---
 
 ## Как запустить?
