@@ -1,6 +1,6 @@
 # Memory Bank: Product Context
 
-## Продукт: DNS Proxy Node.js
+## Продукт: dns-proxy-nodejs
 
 ### Назначение
 DNS-прокси для:

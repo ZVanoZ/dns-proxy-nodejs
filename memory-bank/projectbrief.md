@@ -1,6 +1,6 @@
 # Memory Bank: Project Brief
 
-## Проект: DNS Proxy Node.js
+## Проект: dns-proxy-nodejs
 
 ### Описание
 DNS-proxy-nodejs - небольшой DNS-прокси для использования при разработке сетевых приложений или для маршрутизации DNS-запросов при работе через VPN.
