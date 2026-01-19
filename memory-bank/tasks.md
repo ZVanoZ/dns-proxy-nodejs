@@ -23,9 +23,450 @@
 - [x] Анализ задачи
 - [x] Creative phase завершен
 - [x] Решение принято и зафиксировано
-- [ ] Планирование реализации
+- [x] Планирование реализации
 - [ ] Реализация изменений
 - [ ] Тестирование
+
+**Уровень сложности:** Level 2 (Simple Enhancement)
+
+---
+
+## План реализации
+
+### Этап 1: Подготовка структуры директорий
+
+**Цель:** Создать новую структуру директорий `env/` и переместить файлы
+
+**Шаги:**
+1. Создать структуру директорий:
+   ```bash
+   mkdir -p env/prod/config
+   mkdir -p env/prod/logs
+   mkdir -p env/dev/config
+   mkdir -p env/dev/logs
+   ```
+
+2. Переместить Dockerfile файлы:
+   ```bash
+   mv Dockerfile env/prod/Dockerfile
+   mv Dockerfile.dev env/dev/Dockerfile
+   ```
+
+3. Скопировать шаблоны конфигурации:
+   ```bash
+   cp config/app.ini.dist env/prod/config/app.ini.dist
+   cp config/app.ini.dist env/dev/config/app.ini.dist
+   ```
+
+4. Удалить отдельные docker-compose файлы:
+   ```bash
+   rm docker-compose.dev.yml
+   rm docker-compose.prod.yml
+   ```
+
+**Файлы для создания:**
+- `env/prod/config/app.ini.dist`
+- `env/dev/config/app.ini.dist`
+
+**Файлы для удаления:**
+- `docker-compose.dev.yml`
+- `docker-compose.prod.yml`
+- `scripts/setup-config.js` (после обновления всех ссылок)
+
+---
+
+### Этап 2: Обновление кода приложения
+
+**Цель:** Изменить `src/main.ts` для использования переменной окружения `APP_INI_PATH`
+
+**Файл:** `src/main.ts`
+
+**Изменения:**
+```typescript
+// Было:
+loadFromIni('./config/app.ini').then(...)
+
+// Станет:
+const iniPath = process.env.APP_INI_PATH || './config/app.ini';
+loadFromIni(iniPath).then(...)
+```
+
+**Детали:**
+- Использовать `process.env.APP_INI_PATH` с fallback на `'./config/app.ini'` для обратной совместимости
+- Добавить проверку существования файла (опционально, для лучшего UX)
+
+**Зависимости:**
+- Нет внешних зависимостей
+- Использует стандартный Node.js API
+
+---
+
+### Этап 3: Обновление docker-compose.yml
+
+**Цель:** Обновить конфигурацию Docker Compose с новыми путями и настройками
+
+**Файл:** `docker-compose.yml`
+
+**Изменения:**
+
+1. **Обновить пути к Dockerfile:**
+   ```yaml
+   dns-proxy-prod:
+     build:
+       context: .
+       dockerfile: ./env/prod/Dockerfile
+   
+   dns-proxy-dev:
+     build:
+       context: .
+       dockerfile: ./env/dev/Dockerfile
+   ```
+
+2. **Обновить volumes для PROD:**
+   ```yaml
+   dns-proxy-prod:
+     network_mode: host
+     volumes:
+       - ./env/prod/config:/app/config
+       - ./env/prod/logs:/app/logs
+       - ./config:/app/config  # Удалить эту строку
+       - ./scripts:/app/scripts
+     environment:
+       - APP_INI_PATH=/app/config/app.ini
+     command: node dist/app.js  # Убрать setup-config.js
+   ```
+
+3. **Обновить volumes для DEV:**
+   ```yaml
+   dns-proxy-dev:
+     ports:
+       - "5053:53/udp"
+     volumes:
+       - ./src:/app/src
+       - ./env/dev/config:/app/config
+       - ./dist:/app/dist
+       - ./env/dev/logs:/app/logs
+       - ./scripts:/app/scripts
+       - ./.run-dev.env:/app/.run-dev.env
+     environment:
+       - NODE_ENV=development
+       - APP_INI_PATH=/app/config/app.ini
+     command: npx tsx --inspect src/main.ts  # Убрать setup-config.js
+   ```
+
+4. **Убрать вызовы setup-config.js из command**
+
+**Проверки:**
+- Context сборки остается `.` (корень проекта)
+- Все пути обновлены с `docker/` на `env/`
+- APP_INI_PATH добавлен в environment для обоих режимов
+
+---
+
+### Этап 4: Обновление Dockerfile файлов
+
+**Цель:** Убрать вызовы setup-config.js из Dockerfile
+
+**Файлы:**
+- `env/prod/Dockerfile`
+- `env/dev/Dockerfile`
+
+**Изменения:**
+
+1. **env/prod/Dockerfile:**
+   - Убрать из CMD: `node scripts/setup-config.js setup &&`
+   - Оставить: `CMD ["node", "dist/app.js"]`
+
+2. **env/dev/Dockerfile:**
+   - Убрать из CMD: `node scripts/setup-config.js setup &&`
+   - Оставить: `CMD ["sh", "-c", "npx tsx --inspect src/main.ts"]`
+
+**Проверки:**
+- CMD не содержит вызовов setup-config.js
+- Пути к файлам остаются корректными
+
+---
+
+### Этап 5: Обновление package.json
+
+**Цель:** Убрать все вызовы setup-config.js из npm скриптов
+
+**Файл:** `package.json`
+
+**Изменения:**
+
+1. **Удалить скрипты:**
+   - `docker:dev:separate`
+   - `docker:prod:separate`
+
+2. **Обновить скрипты (убрать setup-config.js):**
+   ```json
+   {
+     "docker:dev:debug": "docker compose --profile dev run --rm dns-proxy-dev sh -c 'npx tsx --inspect-brk src/main.ts'",
+     "dev": "node scripts/load-env-and-run.js .run-dev.env 'tsx --inspect src/main.ts'",
+     "dev:debug": "tsx --inspect-brk src/main.ts",
+     "build": "node scripts/clean-dist.js && node scripts/build-dependencies.js && node scripts/build-app.js",
+     "start": "cd dist && node app.js",
+     "prod:tsx": "node scripts/load-env-and-run.js .run-prod.env 'tsx src/main.ts'"
+   }
+   ```
+
+**Проверки:**
+- Все скрипты обновлены
+- Нет ссылок на setup-config.js
+
+---
+
+### Этап 6: Обновление переменных окружения
+
+**Цель:** Добавить APP_INI_PATH в файлы окружения
+
+**Файлы:**
+- `.run-dev.env`
+- `.run-prod.env`
+
+**Изменения:**
+
+1. **.run-dev.env:**
+   ```env
+   APP_INI_PATH=./env/dev/config/app.ini
+   # или абсолютный путь в контейнере:
+   # APP_INI_PATH=/app/config/app.ini
+   ```
+
+2. **.run-prod.env:**
+   ```env
+   APP_INI_PATH=./env/prod/config/app.ini
+   # или абсолютный путь в контейнере:
+   # APP_INI_PATH=/app/config/app.ini
+   ```
+
+**Рекомендация:** Использовать абсолютные пути в контейнере (`/app/config/app.ini`) для docker-compose, относительные для локального запуска.
+
+---
+
+### Этап 7: Обновление .gitignore
+
+**Цель:** Добавить новые пути для логов и конфигураций
+
+**Файл:** `.gitignore`
+
+**Изменения:**
+```gitignore
+# Docker/Environment logs (новые пути)
+env/prod/logs/
+env/dev/logs/
+
+# Docker/Environment configs (пользовательские конфигурации)
+env/prod/config/app.ini
+env/dev/config/app.ini
+
+# Старые пути (можно оставить для совместимости)
+logs/
+config/app.ini
+```
+
+**Проверки:**
+- Логи исключены из git
+- Пользовательские app.ini исключены
+- Шаблоны app.ini.dist включены в git
+
+---
+
+### Этап 8: Удаление setup-config.js
+
+**Цель:** Удалить скрипт после обновления всех ссылок
+
+**Файл:** `scripts/setup-config.js`
+
+**Действия:**
+- Удалить файл после проверки, что все ссылки обновлены
+
+**Проверки перед удалением:**
+- ✅ Все вызовы убраны из docker-compose.yml
+- ✅ Все вызовы убраны из Dockerfile файлов
+- ✅ Все вызовы убраны из package.json
+- ✅ Документация обновлена
+
+---
+
+### Этап 9: Обновление документации
+
+**Цель:** Обновить документацию с новой структурой
+
+**Файлы:**
+- `docs/DOCKER-OPTIONS.md`
+- `readme.md` (если есть упоминания)
+
+**Изменения:**
+
+1. **docs/DOCKER-OPTIONS.md:**
+   - Обновить пути с `docker/` на `env/`
+   - Убрать упоминания setup-config.js
+   - Добавить инструкции по созданию app.ini из app.ini.dist
+   - Добавить описание переменной APP_INI_PATH
+
+2. **readme.md:**
+   - Обновить инструкции по настройке
+   - Упомянуть необходимость создания app.ini
+
+**Содержание документации:**
+- Инструкции по созданию app.ini из app.ini.dist для каждого режима
+- Описание переменной APP_INI_PATH
+- Обновленные пути к файлам
+
+---
+
+### Этап 10: Тестирование
+
+**Цель:** Проверить работоспособность всех изменений
+
+**Шаги тестирования:**
+
+1. **Тестирование сборки:**
+   ```bash
+   npm run build
+   ```
+   - Проверить, что сборка проходит без ошибок
+   - Проверить, что нет ссылок на setup-config.js
+
+2. **Тестирование DEV режима:**
+   ```bash
+   # Создать app.ini для DEV
+   cp env/dev/config/app.ini.dist env/dev/config/app.ini
+   # Запустить
+   npm run docker:dev
+   ```
+   - Проверить, что контейнер запускается
+   - Проверить, что приложение читает конфигурацию из правильного пути
+   - Проверить, что порт 5053 доступен
+
+3. **Тестирование PROD режима:**
+   ```bash
+   # Создать app.ini для PROD
+   cp env/prod/config/app.ini.dist env/prod/config/app.ini
+   # Изменить порт на 53 в app.ini
+   # Запустить
+   npm run docker:prod
+   ```
+   - Проверить, что контейнер запускается
+   - Проверить, что приложение читает конфигурацию из правильного пути
+   - Проверить, что порт 53 доступен (требует привилегий)
+
+4. **Тестирование одновременной работы:**
+   ```bash
+   # Запустить оба режима
+   npm run docker:dev
+   npm run docker:prod
+   ```
+   - Проверить, что оба режима работают одновременно
+   - Проверить, что нет конфликтов портов
+   - Проверить, что логи разделены
+
+5. **Тестирование локального запуска:**
+   ```bash
+   npm run dev
+   ```
+   - Проверить, что локальный запуск работает
+   - Проверить, что используется правильный путь к конфигурации
+
+---
+
+## Чеклист реализации
+
+### Подготовка
+- [ ] Создать структуру директорий env/
+- [ ] Переместить Dockerfile файлы
+- [ ] Скопировать шаблоны конфигурации
+- [ ] Удалить отдельные docker-compose файлы
+
+### Код
+- [ ] Обновить src/main.ts (APP_INI_PATH)
+- [ ] Обновить docker-compose.yml
+- [ ] Обновить env/prod/Dockerfile
+- [ ] Обновить env/dev/Dockerfile
+- [ ] Обновить package.json
+- [ ] Обновить .run-dev.env
+- [ ] Обновить .run-prod.env
+- [ ] Обновить .gitignore
+
+### Очистка
+- [ ] Удалить scripts/setup-config.js
+
+### Документация
+- [ ] Обновить docs/DOCKER-OPTIONS.md
+- [ ] Обновить readme.md (если нужно)
+
+### Тестирование
+- [ ] Тестирование сборки
+- [ ] Тестирование DEV режима
+- [ ] Тестирование PROD режима
+- [ ] Тестирование одновременной работы
+- [ ] Тестирование локального запуска
+
+---
+
+## Риски и митигация
+
+### Риск 1: Отсутствие app.ini
+**Описание:** Пользователь может забыть создать app.ini из app.ini.dist  
+**Митигация:** 
+- Добавить проверку в код (опционально)
+- Четкая документация с инструкциями
+- Примеры в readme.md
+
+### Риск 2: Неправильный APP_INI_PATH
+**Описание:** Пользователь может указать неправильный путь  
+**Митигация:**
+- Использовать абсолютные пути в docker-compose.yml
+- Fallback на старый путь для обратной совместимости
+- Документация с примерами
+
+### Риск 3: Конфликт портов
+**Описание:** PROD и DEV могут конфликтовать по портам  
+**Митигация:**
+- PROD использует порт 53 (host network)
+- DEV использует порт 5053 (bridge network)
+- Разные сетевые режимы исключают конфликт
+
+### Риск 4: Потеря данных при перемещении
+**Описание:** При перемещении файлов могут потеряться данные  
+**Митигация:**
+- Использовать git для отслеживания изменений
+- Создать резервные копии перед перемещением
+- Проверить все файлы после перемещения
+
+---
+
+## Оценка времени
+
+- **Этап 1 (Подготовка):** 15 минут
+- **Этап 2 (Код):** 20 минут
+- **Этап 3-6 (Конфигурация):** 30 минут
+- **Этап 7-8 (Очистка):** 10 минут
+- **Этап 9 (Документация):** 20 минут
+- **Этап 10 (Тестирование):** 30 минут
+
+**Общее время:** ~2 часа
+
+---
+
+## Зависимости
+
+**Внешние зависимости:** Нет
+
+**Внутренние зависимости:**
+- Docker и Docker Compose должны быть установлены
+- Node.js должен быть установлен
+- Все npm зависимости должны быть установлены
+
+**Порядок выполнения:**
+1. Этап 1 (Подготовка) - можно выполнить в любой момент
+2. Этап 2 (Код) - должен быть выполнен перед тестированием
+3. Этапы 3-6 (Конфигурация) - можно выполнять параллельно
+4. Этап 7-8 (Очистка) - после обновления всех ссылок
+5. Этап 9 (Документация) - можно выполнять параллельно
+6. Этап 10 (Тестирование) - после всех изменений
 
 **Результаты Creative Phase:**
 - ✅ Проанализированы 4 варианта решения
