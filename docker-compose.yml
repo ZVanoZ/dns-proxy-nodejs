@@ -9,21 +9,23 @@ services:
       - dev
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: ./env/dev/Dockerfile
     container_name: dns-proxy-dev
-    network_mode: host
+    ports:
+      - "5053:53/udp"
     volumes:
       - ./src:/app/src
-      - ./config:/app/config
+      - ./env/dev/config:/app/config
       - ./dist:/app/dist
-      - ./logs:/app/logs
+      - ./env/dev/logs:/app/logs
       - ./scripts:/app/scripts
       - ./.run-dev.env:/app/.run-dev.env
     environment:
       - NODE_ENV=development
+      - APP_INI_PATH=/app/config/app.ini
     env_file:
       - .run-dev.env
-    command: sh -c "node scripts/setup-config.js setup && npx tsx --inspect src/main.ts"
+    command: npx tsx --inspect src/main.ts
     restart: unless-stopped
 
   dns-proxy-prod:
@@ -31,16 +33,18 @@ services:
       - prod
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./env/prod/Dockerfile
     container_name: dns-proxy-prod
     network_mode: host
     volumes:
-      - ./config:/app/config
-      - ./logs:/app/logs
+      - ./env/prod/config:/app/config
+      - ./env/prod/logs:/app/logs
       - ./scripts:/app/scripts
+    environment:
+      - APP_INI_PATH=/app/config/app.ini
     env_file:
       - .run-prod.env
-    command: sh -c "node scripts/setup-config.js setup && node dist/app.js"
+    command: node dist/app.js
     restart: always
     cap_add:
       - NET_BIND_SERVICE

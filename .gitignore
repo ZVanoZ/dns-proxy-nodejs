@@ -2,6 +2,15 @@
 config/*
 !config/*.dist
 
+# Docker/Environment logs (новые пути)
+env/prod/logs/
+env/dev/logs/
+
+# Docker/Environment configs (пользовательские конфигурации)
+env/prod/config/app.ini
+env/dev/config/app.ini
+
+# Старые пути (можно оставить для совместимости)
 /dist/
 /logs/
 /node_modules/

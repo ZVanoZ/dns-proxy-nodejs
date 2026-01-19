@@ -25,4 +25,4 @@ USER appuser
 EXPOSE 5053/udp 53/udp
 
 # По умолчанию запускаем dev режим
-CMD ["sh", "-c", "node scripts/setup-config.js setup && npx tsx --inspect src/main.ts"]
+CMD ["sh", "-c", "npx tsx --inspect src/main.ts"]

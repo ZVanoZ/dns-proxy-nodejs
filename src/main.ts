@@ -11,7 +11,8 @@ LoggerFactory.create().then(
     const app = new App();
     app.setLogger(logger);
 
-    loadFromIni('./config/app.ini').then(
+    const iniPath = process.env.APP_INI_PATH || './config/app.ini';
+    loadFromIni(iniPath).then(
       async (options) => {
         console.debug('-- Считаны настройки приложения options:', options);
         app.setOptions(options);

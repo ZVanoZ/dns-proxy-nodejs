@@ -22,14 +22,15 @@ docker compose --profile prod build             # Сборка PROD образа
 **Через docker:**
 ```bash
 # Сборка
-docker build -f Dockerfile -t dns-proxy-nodejs:prod .
+docker build -f env/prod/Dockerfile -t dns-proxy-nodejs:prod .
 
 # Запуск PROD (с автоперезапуском)
 docker run -d --name dns-proxy-prod --network host \
-  -v "$(pwd)/config:/app/config" \
-  -v "$(pwd)/logs:/app/logs" \
+  -v "$(pwd)/env/prod/config:/app/config" \
+  -v "$(pwd)/env/prod/logs:/app/logs" \
   -v "$(pwd)/scripts:/app/scripts" \
   --env-file .run-prod.env \
+  -e APP_INI_PATH=/app/config/app.ini \
   --cap-add NET_BIND_SERVICE \
   --restart always \
   dns-proxy-nodejs:prod

@@ -25,7 +25,8 @@
 4. Запуск через Docker или "docker compose" - см. [DOCKER-OPTIONS.md](DOCKER-OPTIONS.md).
 
 Перед запуском подготовить:
-* "config/app.ini" на основе "config/app.ini.dist" для всех режимов.
+* Для DEV режима: создать "env/dev/config/app.ini" на основе "env/dev/config/app.ini.dist"
+* Для PROD режима: создать "env/prod/config/app.ini" на основе "env/prod/config/app.ini.dist"
 * .run-prod.env из dist.run-prod.env для режима PROD
 * .run-dev.env из dist.run-dev.env для режима DEV 
 
