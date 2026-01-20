@@ -51,6 +51,34 @@ export async function loadFromIni(iniPath: string): Promise<Options> {
         options.maskedDns.set(cleanMask, chainName as string);
       }
     }
+
+    // Загрузка настроек кеша DNS
+    if (parsedIni['dns-cache']) {
+      const dnsCacheSection = parsedIni['dns-cache'];
+      options.dnsCache = {
+        enabled: dnsCacheSection.enabled === 'true' || dnsCacheSection.enabled === true || dnsCacheSection.enabled === '1',
+        maxSize: dnsCacheSection['max-size'] 
+          ? parseInt(dnsCacheSection['max-size'], 10) 
+          : 1000,
+        maxTtl: dnsCacheSection['max-ttl']
+          ? parseInt(dnsCacheSection['max-ttl'], 10)
+          : 86400,
+        negativeTtl: dnsCacheSection['negative-ttl']
+          ? parseInt(dnsCacheSection['negative-ttl'], 10)
+          : 60
+      };
+      
+      // Валидация значений
+      if (options.dnsCache.maxSize <= 0) {
+        throw new Error(`Invalid dns-cache.max-size: ${options.dnsCache.maxSize}`);
+      }
+      if (options.dnsCache.maxTtl <= 0) {
+        throw new Error(`Invalid dns-cache.max-ttl: ${options.dnsCache.maxTtl}`);
+      }
+      if (options.dnsCache.negativeTtl <= 0) {
+        throw new Error(`Invalid dns-cache.negative-ttl: ${options.dnsCache.negativeTtl}`);
+      }
+    }
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(`Failed to load options from ${iniPath}: ${error.message}`);

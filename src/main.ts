@@ -1,6 +1,7 @@
 import { App } from "./App/index.js";
 import { loadFromIni } from "./App/Options/OptionsLoader.js";
 import { LoggerFactory } from "./Logger/index.js";
+import { DnsCache } from "./DnsCache/index.js";
 
 // console.trace('process.env', process.env);
 
@@ -16,6 +17,22 @@ LoggerFactory.create().then(
       async (options) => {
         console.debug('-- Считаны настройки приложения options:', options);
         app.setOptions(options);
+        
+        // Инициализация кеша DNS (если включен)
+        if (options.dnsCache?.enabled) {
+          const cache = new DnsCache(
+            options.dnsCache.maxSize,
+            options.dnsCache.maxTtl,
+            options.dnsCache.negativeTtl
+          );
+          app.setDnsCache(cache);
+          logger.info({ 
+            maxSize: options.dnsCache.maxSize,
+            maxTtl: options.dnsCache.maxTtl,
+            negativeTtl: options.dnsCache.negativeTtl
+          }, 'DNS cache initialized');
+        }
+        
         await app.run();
       }
     );

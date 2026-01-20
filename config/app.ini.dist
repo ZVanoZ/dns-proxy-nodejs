@@ -2,6 +2,12 @@
 host=0.0.0.0
 port=5053
 
+[dns-cache]
+enabled=true
+max-size=1000
+max-ttl=86400
+negative-ttl=60
+
 [masked-dns]
 "*.company.local"=company-dns
 "*.local"=local-dns

@@ -1,4 +1,4 @@
-import { dnsPacket } from "../_dependencies.js";
+import { dnsPacket, type DecodedPacket } from "../_dependencies.js";
 import {
   dnsPacket as dnsPacketModule
 } from "../_dependencies.js";
@@ -7,8 +7,9 @@ import type { OptionsInterface } from "./Options/index.js";
 import { Options } from "./Options/index.js";
 import type { Socket, RemoteInfo } from "node:dgram";
 import dgram from "node:dgram";
-import type { DecodedPacket } from "dns-packet";
 import type { Logger } from "pino";
+import type { DnsCacheInterface } from "../DnsCache/index.js";
+import type { AnswerSource, IpLookupResult } from "./types.js";
 
 
 export {
@@ -22,6 +23,11 @@ export class App {
   protected options!: OptionsInterface;
   protected logger: Logger | null = null;
 
+  /**
+   * Кеш DNS запросов (опционально)
+   */
+  protected dnsCache: DnsCacheInterface | null = null;
+
   constructor() {
     this.options = new Options();
   }
@@ -34,6 +40,13 @@ export class App {
 
   public setLogger(logger: Logger): void {
     this.logger = logger;
+  }
+
+  /**
+   * Установить кеш DNS запросов
+   */
+  public setDnsCache(cache: DnsCacheInterface): void {
+    this.dnsCache = cache;
   }
 
   /**
@@ -118,9 +131,17 @@ export class App {
       const dnsName: string = question.name; // Имя DNS, которое запрашивается
       logger.debug({ dnsName, address: remoteInfo.address }, 'App.onSocketMessage');
 
-      const targetIp: string | string[] | dnsPacket.Answer[] | false = await this.getIp(dnsName);
-      if (typeof targetIp === 'string' || Array.isArray(targetIp)) {
-        this.sendSuccessResponse(dnsRequest, remoteInfo, targetIp);
+      // Получаем результат с информацией об источнике
+      const lookupResult: IpLookupResult = await this.getIp(dnsName);
+
+      if (typeof lookupResult.result === 'string' || Array.isArray(lookupResult.result)) {
+        // Передаем answerSource в sendSuccessResponse
+        this.sendSuccessResponse(
+          dnsRequest,
+          remoteInfo,
+          lookupResult.result,
+          lookupResult.answerSource
+        );
         return;
       }
 
@@ -191,14 +212,16 @@ export class App {
    * @param response - DNS ответ
    * @param remoteInfo - Информация о клиенте
    * @param result - Результат DNS запроса
+   * @param answerSource - Информация об источнике ответа
    */
   protected sendSuccessResponse(
     response: dnsPacketModule.Packet,
     remoteInfo: RemoteInfo,
-    result: string | string[] | dnsPacket.Answer[]
+    result: string | string[] | dnsPacket.Answer[],
+    answerSource: AnswerSource
   ): void {
     const logger = this.getLogger();
-    logger.trace({ response, remoteInfo }, 'App.sendSuccessResponse:BEG: [response, rinfo]');
+    logger.trace({ response, remoteInfo, answerSource }, 'App.sendSuccessResponse:BEG: [response, rinfo, answerSource]');
     try {
       const dnsName: string = response.questions?.[0]?.name ?? '';
 
@@ -226,8 +249,16 @@ export class App {
         response.answers?.push(answer);
       }
       const answer = dnsPacket.encode(response);
-      this.getLogger().info({ responseAnswers: response.answers }, 'App.sendSuccessResponse:[answer]');
-      this.getLogger().debug({ responseAnswers: response.answers, answer }, 'App.sendSuccessResponse:[answer]');
+
+      // Логирование с answer-source
+      const logData = {
+        responseAnswers: response.answers,
+        'answer-source': answerSource
+      };
+
+      this.getLogger().info(logData, 'App.sendSuccessResponse:[answer]');
+      this.getLogger().debug({ ...logData, answer }, 'App.sendSuccessResponse:[answer]');
+
       this.socket.send(answer, remoteInfo.port, remoteInfo.address);
     } finally {
       logger.trace('App.sendSuccessResponse:END');
@@ -237,22 +268,57 @@ export class App {
   /**
    * Функция поиска IP адреса DNS
    * @param dnsName - Имя DNS
-   * @returns IP адрес или false
+   * @returns Результат поиска с информацией об источнике
    */
   protected async getIp(
     dnsName: string
-  ): Promise<string | dnsPacket.Answer[] | false> {
+  ): Promise<IpLookupResult> {
     const logger = this.getLogger();
     logger.trace({ dnsName }, 'App.getIp:BEG:[dnsName]');
     try {
-      let res = await this.getIpLocal(dnsName);
-      if (res !== false) {
-        logger.info({ dnsName, ip: res }, 'App.getIp: found in hosts list');
-        return res;
+      // 1. Проверка локальных хостов
+      const localResult = await this.getIpLocal(dnsName);
+      if (localResult !== false) {
+        logger.info({ dnsName, ip: localResult }, 'App.getIp: found in hosts list');
+        return {
+          result: localResult,
+          answerSource: {
+            'masked-dns': null,
+            'real-source': 'hosts'
+          }
+        };
       }
-      logger.debug({ dnsName, ip: res }, 'App.getIp: not found in hosts list');
+      logger.debug({ dnsName, ip: localResult }, 'App.getIp: not found in hosts list');
 
-      // Перебираем маски из masked-dns в порядке их указания в файле
+      // 2. Проверка кеша перед upstream запросом
+      if (this.dnsCache) {
+        const cached = this.dnsCache.get(dnsName);
+        if (cached !== null && cached !== undefined) {
+          if (cached === false) {
+            logger.debug({ dnsName }, 'App.getIp: found in negative cache');
+            return {
+              result: false,
+              answerSource: {
+                'masked-dns': null, // Кеш не хранит информацию о маске
+                'real-source': 'cache'
+              }
+            };
+          }
+          logger.info({ dnsName, answers: cached }, 'App.getIp: found in cache');
+          // Для кеша нужно определить masked-dns по dnsName
+          const matchedMask = this.findMatchingMask(dnsName);
+          return {
+            result: cached,
+            answerSource: {
+              'masked-dns': matchedMask?.chainName ?? null,
+              'real-source': 'cache'
+            }
+          };
+        }
+        logger.debug({ dnsName }, 'App.getIp: not found in cache');
+      }
+
+      // 3. Перебираем маски из masked-dns в порядке их указания в файле
       for (const [mask, chainName] of this.options.maskedDns.entries()) {
         // Проверяем, соответствует ли dnsName маске
         if (!this.matchDnsMask(dnsName, mask)) {
@@ -277,17 +343,54 @@ export class App {
             continue;
           }
           logger.debug({ dnsName, serverAddress, chainName, res }, 'App.getIp: found in upstream DNS-server');
-          return res;
+
+          // Сохраняем в кеш после успешного запроса
+          if (this.dnsCache && res.length > 0) {
+            // Определяем минимальный TTL из всех ответов
+            const minTtl = Math.min(...res.map(answer => answer.ttl ?? 300));
+            this.dnsCache.set(dnsName, res, minTtl);
+          }
+
+          return {
+            result: res,
+            answerSource: {
+              'masked-dns': chainName,
+              'real-source': serverAddress // Формат "ip:port"
+            }
+          };
         }
         break;//@NOTE: проверяем только первую цепочку по маске
       }
 
-      logger.info({ dnsName }, 'App.getIp: not found at all');
+      // Если не найдено нигде, сохраняем отрицательный кеш
+      if (this.dnsCache) {
+        this.dnsCache.setNegative(dnsName);
+      }
 
-      return false;
+      logger.info({ dnsName }, 'App.getIp: not found at all');
+      return {
+        result: false,
+        answerSource: {
+          'masked-dns': null,
+          'real-source': 'cache' // Отрицательный кеш
+        }
+      };
     } finally {
       logger.trace('App.getIp:END');
     }
+  }
+
+  /**
+   * Найти соответствующую маску для DNS имени
+   * Используется для определения masked-dns при ответе из кеша
+   */
+  protected findMatchingMask(dnsName: string): { mask: string; chainName: string } | null {
+    for (const [mask, chainName] of this.options.maskedDns.entries()) {
+      if (this.matchDnsMask(dnsName, mask)) {
+        return { mask, chainName };
+      }
+    }
+    return null;
   }
 
   /**
