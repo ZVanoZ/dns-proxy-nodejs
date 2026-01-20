@@ -10,6 +10,10 @@ env/dev/logs/
 env/prod/config/app.ini
 env/dev/config/app.ini
 
+# Environment files (пользовательские файлы окружения)
+env/dev/.env
+env/prod/.env
+
 # Старые пути (можно оставить для совместимости)
 /dist/
 /logs/

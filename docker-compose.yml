@@ -19,12 +19,12 @@ services:
       - ./dist:/app/dist
       - ./env/dev/logs:/app/logs
       - ./scripts:/app/scripts
-      - ./.run-dev.env:/app/.run-dev.env
+      - ./env/dev/.env:/app/.run-dev.env
     environment:
       - NODE_ENV=development
       - APP_INI_PATH=/app/config/app.ini
     env_file:
-      - .run-dev.env
+      - env/dev/.env
     command: npx tsx --inspect src/main.ts
     restart: unless-stopped
 
@@ -43,7 +43,7 @@ services:
     environment:
       - APP_INI_PATH=/app/config/app.ini
     env_file:
-      - .run-prod.env
+      - env/prod/.env
     command: node dist/app.js
     restart: always
     cap_add:

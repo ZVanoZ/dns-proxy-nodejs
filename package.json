@@ -19,11 +19,11 @@
     "docker:logs": "docker compose --profile prod logs -f dns-proxy-prod",
     "docker:logs:dev": "docker compose --profile dev logs -f dns-proxy-dev",
     "docker:clean": "docker compose --profile dev --profile prod down -v && docker rmi dns-proxy-nodejs-dns-proxy-dev dns-proxy-nodejs-dns-proxy-prod 2>/dev/null || true",
-    "dev": "node scripts/load-env-and-run.js .run-dev.env 'tsx --inspect src/main.ts'",
+    "dev": "node scripts/load-env-and-run.js env/dev/.env 'tsx --inspect src/main.ts'",
     "dev:debug": "tsx --inspect-brk src/main.ts",
     "build": "node scripts/clean-dist.js && node scripts/build-dependencies.js && node scripts/build-app.js",
     "start": "cd dist && node app.js",
-    "prod:tsx": "node scripts/load-env-and-run.js .run-prod.env 'tsx src/main.ts'"
+    "prod:tsx": "node scripts/load-env-and-run.js env/prod/.env 'tsx src/main.ts'"
   },
   "keywords": [],
   "author": "",

@@ -29,7 +29,7 @@ docker run -d --name dns-proxy-prod --network host \
   -v "$(pwd)/env/prod/config:/app/config" \
   -v "$(pwd)/env/prod/logs:/app/logs" \
   -v "$(pwd)/scripts:/app/scripts" \
-  --env-file .run-prod.env \
+  --env-file env/prod/.env \
   -e APP_INI_PATH=/app/config/app.ini \
   --cap-add NET_BIND_SERVICE \
   --restart always \
@@ -192,8 +192,8 @@ docker run --rm \
   -v "$(pwd)/config:/app/config" \
   -v "$(pwd)/dist:/app/dist" \
   -v "$(pwd)/scripts:/app/scripts" \
-  -v "$(pwd)/.run-dev.env:/app/.run-dev.env" \
-  --env-file .run-dev.env \
+  -v "$(pwd)/env/dev/.env:/app/.run-dev.env" \
+  --env-file env/dev/.env \
   -e NODE_ENV=development \
   dns-proxy-nodejs:dev
 
@@ -205,8 +205,8 @@ docker run -d \
   -v "$(pwd)/config:/app/config" \
   -v "$(pwd)/dist:/app/dist" \
   -v "$(pwd)/scripts:/app/scripts" \
-  -v "$(pwd)/.run-dev.env:/app/.run-dev.env" \
-  --env-file .run-dev.env \
+  -v "$(pwd)/env/dev/.env:/app/.run-dev.env" \
+  --env-file env/dev/.env \
   -e NODE_ENV=development \
   --restart unless-stopped \
   dns-proxy-nodejs:dev
@@ -228,8 +228,8 @@ docker run --rm \
   -v "$(pwd)/config:/app/config" \
   -v "$(pwd)/dist:/app/dist" \
   -v "$(pwd)/scripts:/app/scripts" \
-  -v "$(pwd)/.run-dev.env:/app/.run-dev.env" \
-  --env-file .run-dev.env \
+  -v "$(pwd)/env/dev/.env:/app/.run-dev.env" \
+  --env-file env/dev/.env \
   -e NODE_ENV=development \
   dns-proxy-nodejs:dev \
   sh -c "node scripts/setup-config.js setup && npx tsx --inspect-brk src/main.ts"
@@ -244,7 +244,7 @@ docker run --rm \
   -v "$(pwd)/config:/app/config" \
   -v "$(pwd)/logs:/app/logs" \
   -v "$(pwd)/scripts:/app/scripts" \
-  --env-file .run-prod.env \
+  --env-file env/prod/.env \
   --cap-add NET_BIND_SERVICE \
   --restart always \
   dns-proxy-nodejs:prod
@@ -256,7 +256,7 @@ docker run -d \
   -v "$(pwd)/config:/app/config" \
   -v "$(pwd)/logs:/app/logs" \
   -v "$(pwd)/scripts:/app/scripts" \
-  --env-file .run-prod.env \
+  --env-file env/prod/.env \
   --cap-add NET_BIND_SERVICE \
   --restart always \
   dns-proxy-nodejs:prod
