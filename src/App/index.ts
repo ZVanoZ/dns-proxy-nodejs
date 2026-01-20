@@ -304,7 +304,7 @@ export class App {
               }
             };
           }
-          logger.info({ dnsName, answers: cached }, 'App.getIp: found in cache');
+          logger.debug({ dnsName, answers: cached }, 'App.getIp: found in cache');
           // Для кеша нужно определить masked-dns по dnsName
           const matchedMask = this.findMatchingMask(dnsName);
           return {

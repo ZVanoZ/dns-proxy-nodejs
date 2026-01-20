@@ -73,6 +73,8 @@ negative-ttl=60       # TTL для отрицательного кеша (NXDOMA
 4. Запуск через Docker или "docker compose" - см. [DOCKER-OPTIONS.md](DOCKER-OPTIONS.md).
 
 Перед запуском подготовить:
+* Для Docker Compose:
+  - создать ".env" файл в корне проекта на основе ".env.dist" (для настройки IP адресов контейнеров и подсети)
 * Для DEV режима: 
   - создать "env/dev/config/app.ini" на основе "env/dev/config/app.ini.dist"
   - создать "env/dev/.env" из "env/dev/dist.run-dev.env"

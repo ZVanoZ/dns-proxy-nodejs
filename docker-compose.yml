@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
     networks:
       default:
-        ipv4_address: 192.168.13.133
+        ipv4_address: ${DEV_SERVER_IP}
 
   dns-proxy-prod:
     profiles:
@@ -41,6 +41,7 @@ services:
     ports:
       - "53:5053/udp"
     volumes:
+      - ./dist:/app/dist
       - ./env/prod/config:/app/config
       - ./env/prod/logs:/app/logs
       - ./scripts:/app/scripts
@@ -52,7 +53,7 @@ services:
     restart: always
     networks:
       default:
-        ipv4_address: 192.168.13.13
+        ipv4_address: ${PROD_SERVER_IP}
 
 networks:
   default:
@@ -60,4 +61,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 192.168.13.0/24
+        - subnet: ${NETWORK_SUBNET}
