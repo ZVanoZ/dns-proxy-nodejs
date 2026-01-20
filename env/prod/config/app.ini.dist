@@ -8,9 +8,9 @@ port=5053
 "*"=inet-dns
 
 [upstream-dns]
-inet-dns=1.1.1.1:53
-company-dns=10.10.10.1:53,10.10.11.13:5353
-local-dns=192.168.10.16:5353
+inet-dns=1.1.1.1
+company-dns=10.10.10.1,10.10.11.13:5053
+local-dns=192.168.10.16:5053
 
 [hosts]
 app.dev.local=192.168.10.50
