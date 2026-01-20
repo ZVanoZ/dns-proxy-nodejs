@@ -38,8 +38,8 @@ RUN addgroup -S appuser && \
 
 USER appuser
 
-# Открываем порты
-EXPOSE 5053/udp 53/udp
+# Открываем порт для PROD (внутри контейнера работает на 5053, маппится на 53 на хосте)
+EXPOSE 5053/udp
 
 # Запуск приложения
 CMD ["node", "dist/app.js"]

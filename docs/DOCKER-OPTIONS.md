@@ -25,13 +25,13 @@ docker compose --profile prod build             # Сборка PROD образа
 docker build -f env/prod/Dockerfile -t dns-proxy-nodejs:prod .
 
 # Запуск PROD (с автоперезапуском)
-docker run -d --name dns-proxy-prod --network host \
+docker run -d --name dns-proxy-prod \
+  -p "53:5053/udp" \
   -v "$(pwd)/env/prod/config:/app/config" \
   -v "$(pwd)/env/prod/logs:/app/logs" \
   -v "$(pwd)/scripts:/app/scripts" \
   --env-file env/prod/.env \
   -e APP_INI_PATH=/app/config/app.ini \
-  --cap-add NET_BIND_SERVICE \
   --restart always \
   dns-proxy-nodejs:prod
 ```
@@ -240,24 +240,24 @@ docker run --rm \
 # Запуск в foreground (с выводом логов)
 docker run --rm \
   --name dns-proxy-prod \
-  --network host \
-  -v "$(pwd)/config:/app/config" \
-  -v "$(pwd)/logs:/app/logs" \
+  -p "53:5053/udp" \
+  -v "$(pwd)/env/prod/config:/app/config" \
+  -v "$(pwd)/env/prod/logs:/app/logs" \
   -v "$(pwd)/scripts:/app/scripts" \
   --env-file env/prod/.env \
-  --cap-add NET_BIND_SERVICE \
+  -e APP_INI_PATH=/app/config/app.ini \
   --restart always \
   dns-proxy-nodejs:prod
 
 # Запуск в background (daemon) с автоперезапуском
 docker run -d \
   --name dns-proxy-prod \
-  --network host \
-  -v "$(pwd)/config:/app/config" \
-  -v "$(pwd)/logs:/app/logs" \
+  -p "53:5053/udp" \
+  -v "$(pwd)/env/prod/config:/app/config" \
+  -v "$(pwd)/env/prod/logs:/app/logs" \
   -v "$(pwd)/scripts:/app/scripts" \
   --env-file env/prod/.env \
-  --cap-add NET_BIND_SERVICE \
+  -e APP_INI_PATH=/app/config/app.ini \
   --restart always \
   dns-proxy-nodejs:prod
 
@@ -297,10 +297,11 @@ docker system prune -a
 ```
 
 **Примечания:**
-- `--network host` используется для работы с портами 53/5053
+- PROD режим использует bridge network с маппингом порта `53:5053/udp` (порт 53 на хосте → порт 5053 в контейнере)
+- DEV режим использует bridge network с маппингом порта `5053:53/udp` (порт 5053 на хосте → порт 53 в контейнере)
 - `--restart always` для PROD режима обеспечивает автоматический перезапуск при падении контейнера
 - `--restart unless-stopped` для DEV режима перезапускает контейнер, если он не был остановлен вручную
-- `--cap-add NET_BIND_SERVICE` необходимо для работы с привилегированным портом 53 в PROD режиме
+- PROD режим не требует `--cap-add NET_BIND_SERVICE`, так как приложение работает на порту 5053 внутри контейнера
 - `--rm` автоматически удаляет контейнер после остановки (только для foreground режима)
 
 ---
@@ -361,6 +362,169 @@ docker compose up dns-proxy-prod
 ## Рекомендация
 
 **Используйте Решение 1 (Профили)** - это наиболее гибкий и современный подход, который предотвращает случайный запуск обоих режимов, но позволяет запустить их одновременно при необходимости.
+
+---
+
+## Диагностика DNS-запросов
+
+### Проверка DNS-запросов в DEV режиме
+
+DEV режим (через docker compose) по умолчанию слушает порт 53 **внутри контейнера** и маппится на порт 5053 на хосте:
+
+```bash
+nslookup google.com 127.0.0.1 -port=5053
+nslookup google.com localhost -port=5053
+```
+
+### Проверка DNS-запросов в PROD режиме (docker compose)
+
+PROD режим (через docker compose) по умолчанию:
+- слушает порт 5053 внутри контейнера
+- маппится на порт 53 на хосте: `53:5053/udp`
+
+Проверка:
+
+```bash
+nslookup google.com 127.0.0.1
+nslookup google.com localhost
+```
+
+**Важно:** При использовании bridge network с фиксированными IP адресами (как настроено в `docker-compose.yml`), запросы к `127.0.0.1` могут не работать, так как контейнер находится в отдельной сети.
+
+В этом случае используйте фиксированный IP контейнера:
+
+**PROD режим:**
+```bash
+nslookup google.com 192.168.13.13
+```
+
+**DEV режим:**
+```bash
+nslookup google.com 192.168.13.133 -port=5053
+```
+
+Если вы запускаете контейнеры **без** docker compose (через `docker run`), то IP контейнера может отличаться. В этом случае:
+
+1. Найдите IP контейнера:
+
+```bash
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' dns-proxy-prod
+```
+
+2. Проверьте запрос напрямую к этому IP:
+
+```bash
+nslookup google.com <IP_КОНТЕЙНЕРА>
+```
+
+### Диагностика проблем с DNS
+
+Если `nslookup google.com 127.0.0.1` возвращает:
+
+```text
+;; communications error to 127.0.0.1#53: timed out
+```
+
+проверьте:
+
+1. Запущен ли PROD контейнер:
+
+```bash
+docker ps | grep dns-proxy-prod
+```
+
+2. Какие порты слушает контейнер:
+
+```bash
+docker compose --profile prod ps
+docker compose --profile prod config | grep -A3 ports:
+```
+
+3. Что DNS-запросы проходят к контейнеру по его фиксированному IP:
+
+**PROD режим:**
+```bash
+nslookup google.com 192.168.13.13
+```
+
+**DEV режим:**
+```bash
+nslookup google.com 192.168.13.133 -port=5053
+```
+
+Если по фиксированному IP контейнера запросы работают, а через `127.0.0.1` — нет, это нормально:
+- контейнер находится в отдельной bridge сети (`192.168.13.0/24`)
+- для доступа используйте фиксированный IP: `192.168.13.13` (PROD) или `192.168.13.133` (DEV)
+
+---
+
+## Фиксированные IP адреса для контейнеров
+
+В `docker-compose.yml` настроены фиксированные IP адреса для контейнеров:
+
+- **PROD режим:** `192.168.13.13`
+- **DEV режим:** `192.168.13.133`
+- **Подсеть:** `192.168.13.0/24`
+
+### Конфигурация сети в docker-compose.yml
+
+```yaml
+networks:
+  default:
+    name: dns-proxy-nodejs-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.13.0/24
+
+services:
+  dns-proxy-prod:
+    networks:
+      default:
+        ipv4_address: 192.168.13.13
+
+  dns-proxy-dev:
+    networks:
+      default:
+        ipv4_address: 192.168.13.133
+```
+
+Это гарантирует:
+- стабильные IP адреса после перезапуска компьютера и Docker
+- предсказуемое поведение при перезапусках
+- возможность один раз настроить DNS в ОС и не менять его
+
+> **Важно:** перед использованием подсети `192.168.13.0/24` убедитесь, что она не конфликтует с существующими сетями в вашей системе:
+> ```bash
+> docker network ls
+> docker network inspect <network_name>
+> ip addr
+> ```
+
+### Настройка DNS в операционной системе
+
+После запуска контейнеров с фиксированными IP адресами:
+
+1. Откройте настройки сетевого соединения вашей ОС.
+2. Перейдите на вкладку `IPv4`.
+3. В поле «Другие DNS-серверы» (или аналогичном) укажите:
+
+**Для PROD режима:**
+```text
+192.168.13.13
+```
+
+**Для DEV режима (если нужно):**
+```text
+192.168.13.133
+```
+
+4. Сохраните настройки.
+
+После этого:
+- вам не нужно каждый раз смотреть текущий IP контейнера,
+- после перезапуска компьютера и Docker IP адреса останутся теми же (`192.168.13.13` для PROD, `192.168.13.133` для DEV),
+- все приложения, использующие системный DNS, будут автоматически ходить в соответствующий DNS-прокси.
 
 ---
 

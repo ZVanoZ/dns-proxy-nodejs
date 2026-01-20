@@ -27,6 +27,9 @@ services:
       - env/dev/.env
     command: npx tsx --inspect src/main.ts
     restart: unless-stopped
+    networks:
+      default:
+        ipv4_address: 192.168.13.133
 
   dns-proxy-prod:
     profiles:
@@ -35,7 +38,8 @@ services:
       context: .
       dockerfile: ./env/prod/Dockerfile
     container_name: dns-proxy-prod
-    network_mode: host
+    ports:
+      - "53:5053/udp"
     volumes:
       - ./env/prod/config:/app/config
       - ./env/prod/logs:/app/logs
@@ -46,5 +50,14 @@ services:
       - env/prod/.env
     command: node dist/app.js
     restart: always
-    cap_add:
-      - NET_BIND_SERVICE
+    networks:
+      default:
+        ipv4_address: 192.168.13.13
+
+networks:
+  default:
+    name: dns-proxy-nodejs-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.13.0/24

@@ -183,17 +183,26 @@ sudo netstat -antupl | grep ":.*53.*\s"
 
 * Проверка работоспособности
 
+**PROD режим (через Docker):**
+```shell
+# Используйте фиксированный IP контейнера
+nslookup google.com 192.168.13.13
+```
+
+**DEV режим (через Docker):**
+```shell
+# Используйте фиксированный IP контейнера
+nslookup -port=5053 google.com 192.168.13.133
+```
+
+**Локальный запуск (без Docker):**
 ```shell
 nslookup google.com 127.0.0.1
-```
-
-```shell
 nslookup -port=5053 google.com 127.0.0.1
-```
-
-```shell
 nslookup -retry=0 -port=5053 my-invalid-host.local 127.0.0.1
 ```
+
+> **Примечание:** При использовании Docker с bridge network запросы к `127.0.0.1` могут не работать. Используйте фиксированные IP адреса контейнеров: `192.168.13.13` (PROD) или `192.168.13.133` (DEV). Подробнее см. [DOCKER-OPTIONS.md](docs/DOCKER-OPTIONS.md).
 
 ---
 
