@@ -70,7 +70,7 @@ negative-ttl=60       # TTL для отрицательного кеша (NXDOMA
 1. Запуск скомпилированного приложения из папки "./dist"
 2. Запуск из исходников в режиме PROD
 3. Запуск из исходников в режиме DEV
-4. Запуск через Docker или "docker compose" - см. [DOCKER-OPTIONS.md](DOCKER-OPTIONS.md).
+4. Запуск через Docker или "docker compose" - см. [DOCKER-OPTIONS.md](docs/DOCKER-OPTIONS.md)
 
 Перед запуском подготовить:
 * Для Docker Compose:
