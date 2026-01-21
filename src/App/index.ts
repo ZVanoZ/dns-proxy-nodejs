@@ -279,7 +279,7 @@ export class App {
       // 1. Проверка локальных хостов
       const localResult = await this.getIpLocal(dnsName);
       if (localResult !== false) {
-        logger.info({ dnsName, ip: localResult }, 'App.getIp: found in hosts list');
+        logger.debug({ dnsName, ip: localResult }, 'App.getIp: found in hosts list');
         return {
           result: localResult,
           answerSource: {
@@ -367,7 +367,7 @@ export class App {
         this.dnsCache.setNegative(dnsName);
       }
 
-      logger.info({ dnsName }, 'App.getIp: not found at all');
+      logger.debug({ dnsName }, 'App.getIp: not found at all');
       return {
         result: false,
         answerSource: {
@@ -407,7 +407,7 @@ export class App {
       const targetIp = this.options.hosts.get(dnsName);
 
       if (targetIp) {
-        logger.info({ dnsName, targetIp }, 'App.getIpLocal: found in local hosts list');
+        logger.debug({ dnsName, targetIp }, 'App.getIpLocal: found in local hosts list');
         return targetIp;
       }
       return false;
