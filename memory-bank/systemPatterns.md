@@ -144,3 +144,20 @@
 - Форматирование в Markdown с разделителями между запросами
 - Режим работы для каждого запроса определяется на основе доступных инструментов и возможностей AI в момент обработки этого запроса
 - Разные запросы в одном чате могут иметь разные режимы работы
+
+## База знаний
+
+### DNS спецификация
+
+**Knowledge Base:** DNS specifications are located in `/docs/reference/dns/` and should be referenced during protocol implementation.
+
+Документация по протоколу DNS находится в `docs/reference/dns/` и включает:
+- `/docs/reference/dns/README.md` - главная страница документации
+- `/docs/reference/dns/01-basics.md` - основы DNS
+- `/docs/reference/dns/02-packet-structure.md` - структура DNS пакета
+- `/docs/reference/dns/03-record-types.md` - типы DNS записей
+- `/docs/reference/dns/04-resolution-process.md` - процесс резолвинга
+- `/docs/reference/dns/05-server-types.md` - типы DNS серверов
+- `/docs/reference/dns/06-response-codes.md` - коды ответов DNS
+
+При работе с логикой DNS всегда учитывай документацию в папке `docs/reference/dns/`.

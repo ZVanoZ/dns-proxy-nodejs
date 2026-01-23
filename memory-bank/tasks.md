@@ -5,7 +5,7 @@
 **Задача:** task20260121120200 - Улучшить и актуализировать документацию  
 **Дата начала:** 2026-01-23  
 **Уровень сложности:** Level 2 (Simple Enhancement)  
-**Статус:** PLAN - Планирование завершено, готово к реализации
+**Статус:** BUILD - Реализация завершена, готово к рефлексии
 
 ### Описание задачи
 
@@ -585,37 +585,38 @@
 
 ### Чеклист реализации
 
-- [ ] **Этап 1: Перенос документации DNS**
-  - [ ] Создать директорию `docs/reference/` (если не существует)
-  - [ ] Перенести папку `docs/dns/` в `docs/reference/dns/`
-  - [ ] Обновить ссылки на документацию DNS в проекте
-  - [ ] Обновить `memory-bank/systemPatterns.md`
+- [x] **Этап 1: Перенос документации DNS**
+  - [x] Создать директорию `docs/reference/` (если не существует)
+  - [x] Перенести папку `docs/dns/` в `docs/reference/dns/`
+  - [x] Обновить ссылки на документацию DNS в проекте
+  - [x] Обновить `memory-bank/systemPatterns.md`
 
-- [ ] **Этап 2: Создание структуры документации**
-  - [ ] Создать директорию `docs/guides/`
-  - [ ] Создать директорию `docs/archive/`
-  - [ ] Создать директорию `docs/development/`
-  - [ ] Проверить существование `docs/reference/`
+- [x] **Этап 2: Создание структуры документации**
+  - [x] Создать директорию `docs/guides/`
+  - [x] Создать директорию `docs/archive/`
+  - [x] Создать директорию `docs/development/`
+  - [x] Проверить существование `docs/reference/`
 
-- [ ] **Этап 3: Реорганизация вспомогательных файлов**
-  - [ ] Переработать `docs/how-to-run-in-linux.md` в `docs/guides/linux-setup.md`
-  - [ ] Переместить `docs/run-app.sh` в `docs/archive/run-app.sh`
+- [x] **Этап 3: Реорганизация вспомогательных файлов**
+  - [x] Переработать `docs/how-to-run-in-linux.md` в `docs/guides/linux-setup.md`
+  - [x] Переместить `docs/run-app.sh` в `docs/archive/run-app.sh`
+  - [x] Удалить старые файлы из корня `docs/`
 
-- [ ] **Этап 4: Рефакторинг README.md**
-  - [ ] Извлечь секцию vanzan01 в `memory-bank/workflow.md` или `techContext.md`
-  - [ ] Извлечь секцию RAW в `docs/development/history.md` или `docs/archive/scaffolding.md`
-  - [ ] Актуализировать секцию "Как запустить?" (заменить на ссылку)
-  - [ ] Обновить README.md (оставить только суть, Quick Start, ссылки)
+- [x] **Этап 4: Рефакторинг README.md**
+  - [x] Извлечь секцию vanzan01 в `memory-bank/workflow.md`
+  - [x] Извлечь секцию RAW в `docs/development/history.md`
+  - [x] Актуализировать секцию "Как запустить?" (заменить на ссылку)
+  - [x] Обновить README.md (оставить только суть, Quick Start, ссылки)
 
-- [ ] **Этап 5: Создание единого руководства по запуску**
-  - [ ] Создать `docs/guides/run.md` с объединенной информацией
-  - [ ] Обновить README.md с ссылкой на новый гайд
+- [x] **Этап 5: Создание единого руководства по запуску**
+  - [x] Создать `docs/guides/run.md` с объединенной информацией
+  - [x] Обновить README.md с ссылкой на новый гайд
 
-- [ ] **Этап 6: Обновление ссылок и финальная проверка**
-  - [ ] Обновить ссылки на документацию DNS
-  - [ ] Обновить `memory-bank/systemPatterns.md`
-  - [ ] Проверить все ссылки в README.md
-  - [ ] Проверить целостность документации
+- [x] **Этап 6: Обновление ссылок и финальная проверка**
+  - [x] Обновить ссылки на документацию DNS в README.md
+  - [x] Обновить `memory-bank/systemPatterns.md`
+  - [x] Проверить все ссылки в README.md
+  - [x] Проверить целостность документации
 
 ---
 
@@ -623,8 +624,8 @@
 
 - [x] Initialization complete (VAN mode)
 - [x] Planning complete (PLAN mode)
-- [ ] Technology validation complete
-- [ ] Implementation steps
+- [x] Technology validation complete (не требуется - только документация)
+- [x] Implementation complete (BUILD mode)
 
 ## Технологический стек
 
