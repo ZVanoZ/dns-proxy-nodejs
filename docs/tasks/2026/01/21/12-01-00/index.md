@@ -2,7 +2,7 @@
 
 **Номер задачи:** task20260121120100  
 **Дата создания:** 2026-01-21 12:01:00  
-**Статус:** OPENED
+**Статус:** REFLECTED
 
 ## Описание задачи
 
@@ -14,4 +14,7 @@
 
 ## История статусов
 
-- 2026-01-21 12:01:00 - OPENED (задача открыта)
+- 2026-01-22 12:08 - CREATED  b410b8a7 2026-01-22 12:08 ZVanoZ vanzan01/cursor-memory-bank | todo-list | /van Организация списка задач.
+- 2026-01-23 12:01 - OPENED   f3671d2b 2026-01-23 11:36 ZVanoZ vanzan01/cursor-memory-bank | todo-list | /plan Замена "без статуса" на CREATED
+- 2026-01-23 12:01 - BUILDED  ad1ee4be 2026-01-23 12:01 ZVanoZ vanzan01/cursor-memory-bank | todo-list | /build
+- 2026-01-23 12:11 - REFLECTED
