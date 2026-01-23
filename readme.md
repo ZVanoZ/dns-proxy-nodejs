@@ -10,9 +10,14 @@
 
 Альфа. Функционал работает. Выполняется рефакторинг и тестирование.
 
-* Прогресс [progress.md](memory-bank/progress.md)
-* Активная задача [activeContext.md](memory-bank/activeContext.md)
-* Список задач [tasks.md](memory-bank/tasks.md)
+* Задачи
+  * Список [index.md](docs/tasks/index.md)
+  * Правила для `vanzan01/cursor-memory-bank` v0.8 [rules.md](docs/tasks/rules.md)
+  * Инструкция: Добавление задач в план используя методологию vanzan01/cursor-memory-bank v0.8 [index.md](docs/reference/task-management/index.md)
+* `vanzan01/cursor-memory-bank` v0.8
+  * Прогресс [progress.md](memory-bank/progress.md)
+  * Активная задача [activeContext.md](memory-bank/activeContext.md)
+  * Список задач [tasks.md](memory-bank/tasks.md)
 
 ---
 
