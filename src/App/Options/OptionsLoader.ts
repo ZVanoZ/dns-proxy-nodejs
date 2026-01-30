@@ -9,18 +9,23 @@ export async function loadFromIni(iniPath: string): Promise<Options> {
     const iniContent = await fs.readFile(iniPath, 'utf-8');
     const parsedIni = ini.parse(iniContent);
 
-    // Валидация и установка значений
-    if (parsedIni.app?.host) {
-      options.bindHost = parsedIni.app.host;
+    // Валидация и установка значений [app]: v4host, v6host, port
+    if (parsedIni.app?.v4host !== undefined && parsedIni.app.v4host !== '') {
+      options.bindV4Host = String(parsedIni.app.v4host).trim();
     }
-
-    if (parsedIni.app?.port) {
-      const port = parseInt(parsedIni.app.port, 10);
+    if (parsedIni.app?.v6host !== undefined && parsedIni.app.v6host !== '') {
+      options.bindV6Host = String(parsedIni.app.v6host).trim();
+    }
+    if (parsedIni.app?.port !== undefined) {
+      const port = parseInt(String(parsedIni.app.port), 10);
       if (!isNaN(port) && port > 0 && port < 65536) {
         options.bindPort = port;
       } else {
         throw new Error(`Invalid port: ${parsedIni.app.port}`);
       }
+    }
+    if (!options.bindV4Host && !options.bindV6Host) {
+      throw new Error('At least one of v4host or v6host must be set in [app]');
     }
 
     // Преобразование объектов в Map
@@ -57,8 +62,8 @@ export async function loadFromIni(iniPath: string): Promise<Options> {
       const dnsCacheSection = parsedIni['dns-cache'];
       options.dnsCache = {
         enabled: dnsCacheSection.enabled === 'true' || dnsCacheSection.enabled === true || dnsCacheSection.enabled === '1',
-        maxSize: dnsCacheSection['max-size'] 
-          ? parseInt(dnsCacheSection['max-size'], 10) 
+        maxSize: dnsCacheSection['max-size']
+          ? parseInt(dnsCacheSection['max-size'], 10)
           : 1000,
         maxTtl: dnsCacheSection['max-ttl']
           ? parseInt(dnsCacheSection['max-ttl'], 10)
@@ -67,7 +72,7 @@ export async function loadFromIni(iniPath: string): Promise<Options> {
           ? parseInt(dnsCacheSection['negative-ttl'], 10)
           : 60
       };
-      
+
       // Валидация значений
       if (options.dnsCache.maxSize <= 0) {
         throw new Error(`Invalid dns-cache.max-size: ${options.dnsCache.maxSize}`);

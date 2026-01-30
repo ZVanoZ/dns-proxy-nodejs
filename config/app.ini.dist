@@ -1,5 +1,7 @@
 [app]
-host=0.0.0.0
+# Хотя бы один из v4host, v6host должен быть задан. Один port для всех сокетов.
+v4host=0.0.0.0
+v6host=::
 port=5053
 
 [dns-cache]

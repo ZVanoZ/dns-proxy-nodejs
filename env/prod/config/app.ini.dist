@@ -1,5 +1,6 @@
 [app]
-host=0.0.0.0
+v4host=0.0.0.0
+v6host=::
 port=53
 
 [dns-cache]
@@ -14,7 +15,20 @@ negative-ttl=60
 "*"=inet-dns
 
 [upstream-dns]
-inet-dns=1.1.1.1
+;-----
+; https://test-ipv6.com/
+; https://ipv6-test.com/
+; --
+; https://developers.cloudflare.com/1.1.1.1/ip-addresses/
+; https://en.wikipedia.org/wiki/Google_Public_DNS
+; --
+; IPv4     IPv6                  Owner  
+; 1.1.1.1  2606:4700:4700::1111  cloudflare
+; 1.0.0.1  2606:4700:4700::1001  cloudflare
+; 8.8.8.8  2001:4860:4860::8888  google
+; 8.8.4.4  2001:4860:4860::8844  google
+;-----
+inet-dns=1.1.1.1,2606:4700:4700::1111,8.8.8.8,2001:4860:4860::8888
 company-dns=10.10.10.1,10.10.11.13:5053
 local-dns=192.168.13.133:53
 

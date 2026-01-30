@@ -462,9 +462,9 @@ nslookup google.com 192.168.13.133 -port=5053
 
 В `docker-compose.yml` настроены фиксированные IP адреса для контейнеров через переменные окружения:
 
-- **PROD режим:** `${PROD_SERVER_IP}` (по умолчанию: `192.168.13.13`)
-- **DEV режим:** `${DEV_SERVER_IP}` (по умолчанию: `192.168.13.133`)
-- **Подсеть:** `${NETWORK_SUBNET}` (по умолчанию: `192.168.13.0/24`)
+- **PROD режим:** `${PROD_SERVER_IP}` (по умолчанию: `192.168.13.13`), IPv6: `${PROD_SERVER_IPV6}` (по умолчанию: `fd00:0:0:1::13`)
+- **DEV режим:** `${DEV_SERVER_IP}` (по умолчанию: `192.168.13.133`), IPv6: `${DEV_SERVER_IPV6}` (по умолчанию: `fd00:0:0:1::133`)
+- **Подсеть:** `${NETWORK_SUBNET}` (по умолчанию: `192.168.13.0/24`), IPv6: `${NETWORK_SUBNET_IPV6}` (по умолчанию: `fd00:0:0:1::/80`)
 
 ### Настройка переменных окружения
 
@@ -485,29 +485,39 @@ PROD_SERVER_IP=192.168.13.13
 
 # Подсеть для Docker bridge network
 NETWORK_SUBNET=192.168.13.0/24
+# IPv6 (опционально)
+# NETWORK_SUBNET_IPV6=fd00:0:0:1::/80
+# DEV_SERVER_IPV6=fd00:0:0:1::133
+# PROD_SERVER_IPV6=fd00:0:0:1::13
 ```
 
 ### Конфигурация сети в docker-compose.yml
+
+Сеть включена в режиме dual-stack (IPv4 + IPv6). При необходимости IPv6-адреса и подсеть можно переопределить в `.env`:
 
 ```yaml
 networks:
   default:
     name: dns-proxy-nodejs-net
     driver: bridge
+    enable_ipv6: true
     ipam:
       config:
         - subnet: ${NETWORK_SUBNET}
+        - subnet: ${NETWORK_SUBNET_IPV6:-fd00:0:0:1::/80}
 
 services:
   dns-proxy-prod:
     networks:
       default:
         ipv4_address: ${PROD_SERVER_IP}
+        ipv6_address: ${PROD_SERVER_IPV6:-fd00:0:0:1::13}
 
   dns-proxy-dev:
     networks:
       default:
         ipv4_address: ${DEV_SERVER_IP}
+        ipv6_address: ${DEV_SERVER_IPV6:-fd00:0:0:1::133}
 ```
 
 Это гарантирует:

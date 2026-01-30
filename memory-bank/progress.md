@@ -4,7 +4,27 @@
 **Альфа-версия** - функционал работает, выполняется рефакторинг и тестирование
 
 ### Текущая задача
-[Ожидание новой задачи]
+**task20260121120400 — поддержка IPv6 (dual-stack)**
+
+**Статус:** ✅ BUILD выполнен (2026-01-30)
+
+**Выполнено:**
+- Артефакты сбор информации: `docs/tasks/2026/01/21/12-04-00/docs/10-analise-result.md`, `20-lib-info.md`
+- Конфигурация: `v4host`, `v6host`, `port` в `config/app.ini.dist`, `env/dev/config/app.ini.dist`, `env/prod/config/app.ini.dist`, `config/app.ini`
+- Options: `bindV4Host?`, `bindV6Host?`, `bindPort`; загрузка из INI с валидацией «хотя бы один хост»
+- App: два сокета (udp4, udp6), общий обработчик с передачей сокета в send*; режимы IPv4-only, IPv6-only, dual-stack
+- Сборка и тесты: 31 тест пройдены
+- Документация: раздел «Поддержка IPv4 и IPv6» в readme.md
+
+**Изменённые файлы:**
+- `src/App/Options/index.ts`, `OptionsLoader.ts` — новые поля и загрузка v4host/v6host/port
+- `src/App/index.ts` — initSocket (один или два сокета), onSocketMessage(msg, rinfo, socket), sendErrorResponse/sendSuccessResponse(..., socket)
+- `config/app.ini.dist`, `config/app.ini`, `env/dev/config/app.ini.dist`, `env/prod/config/app.ini.dist`
+- `readme.md` — раздел IPv4/IPv6
+
+**Следующий шаг:** `/reflect`, затем `/archive` по завершении задачи.
+
+---
 
 ### Предыдущая задача (2026-01-23)
 **Вынос правил ведения задач в отдельный файл**

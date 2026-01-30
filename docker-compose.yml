@@ -30,6 +30,7 @@ services:
     networks:
       default:
         ipv4_address: ${DEV_SERVER_IP}
+        ipv6_address: ${DEV_SERVER_IPV6:-fd00:0:0:1::133}
 
   dns-proxy-prod:
     profiles:
@@ -54,11 +55,14 @@ services:
     networks:
       default:
         ipv4_address: ${PROD_SERVER_IP}
+        ipv6_address: ${PROD_SERVER_IPV6:-fd00:0:0:1::13}
 
 networks:
   default:
     name: dns-proxy-nodejs-net
     driver: bridge
+    enable_ipv6: true
     ipam:
       config:
         - subnet: ${NETWORK_SUBNET}
+        - subnet: ${NETWORK_SUBNET_IPV6:-fd00:0:0:1::/80}

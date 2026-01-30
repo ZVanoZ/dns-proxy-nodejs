@@ -137,3 +137,15 @@ VAN QA
 /chat-save
 
 **Ответ:** Выполнен полный экспорт чата в файл журнала по правилам chat-saving. Содержимое файла `docs/prompt/2026/2026-01-30/13-00/chat.md` заменено полным текущим состоянием чата (все запросы и ответы).
+
+---
+## Запрос: 2026-01-30 15:30:00 GMT
+Режим работы: Agent mode
+Процент контекста до выполнения: [не определен]
+Процент контекста после выполнения: [не определен]
+Модель AI: [не определен]
+/build task20260121120400
+
+Не забывай сохранять чат.
+
+**Ответ:** BUILD для task20260121120400 выполнен. Реализовано: (1) Артефакты сбор информации — 10-analise-result.md, 20-lib-info.md в docs/tasks/2026/01/21/12-04-00/docs/. (2) Конфигурация — v4host, v6host, port в config/app.ini.dist, config/app.ini, env/dev и env/prod config. (3) Options — bindV4Host?, bindV6Host?, bindPort; OptionsLoader читает v4host/v6host/port, валидация «хотя бы один хост». (4) App — socket: Socket | null, socket6: Socket | null; initSocket создаёт udp4 и/или udp6 по опциям; onSocketMessage(msg, rinfo, socket), sendErrorResponse/sendSuccessResponse(..., socket); onSocketError(socket, err). (5) Тесты — 31 passed. (6) Документация — раздел «Поддержка IPv4 и IPv6» в readme.md. Обновлены memory-bank/tasks.md (чеклист), progress.md, activeContext.md. Журнал чата обновлён.

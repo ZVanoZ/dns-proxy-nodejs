@@ -4,7 +4,7 @@ import type { TestOptions } from "./index.js";
 
 export async function loadTestOptions(iniPath: string = './config/test.config.ini'): Promise<TestOptions> {
   const options: TestOptions = {
-    dnsServerHost: '127.0.0.1',
+    v4DnsServerHost: '127.0.0.1',
     dnsServerPort: 5053,
     requestsPerSecond: 40,
     loadTestDuration: 10,
@@ -19,8 +19,12 @@ export async function loadTestOptions(iniPath: string = './config/test.config.in
     if (parsedIni.test) {
       const testSection = parsedIni.test;
 
-      if (testSection.dnsServerHost) {
-        options.dnsServerHost = testSection.dnsServerHost;
+      if (testSection.v4DnsServerHost) {
+        options.v4DnsServerHost = testSection.v4DnsServerHost;
+      }
+
+      if (testSection.v6DnsServerHost !== undefined && testSection.v6DnsServerHost !== '') {
+        options.v6DnsServerHost = String(testSection.v6DnsServerHost).trim();
       }
 
       if (testSection.dnsServerPort) {

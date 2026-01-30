@@ -1,5 +1,6 @@
 [app]
-host=0.0.0.0
+v4host=0.0.0.0
+v6host=::
 port=5053
 
 [dns-cache]

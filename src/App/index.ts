@@ -18,7 +18,10 @@ export {
 
 export class App {
   protected isReady: boolean = false;
-  protected socket!: Socket;
+  /** Сокет UDP IPv4 (null, если v4host не задан). */
+  protected v4Socket: Socket | null = null;
+  /** Сокет UDP IPv6 (null, если v6host не задан). */
+  protected v6Socket: Socket | null = null;
 
   protected options!: OptionsInterface;
   protected logger: Logger | null = null;
@@ -71,40 +74,55 @@ export class App {
   }
 
   protected initSocket(): void {
-    this.socket = dgram.createSocket('udp4');
-    this.socket.on('error', this.onSocketError.bind(this));
-    this.socket.on('message', this.onSocketMessage.bind(this));
-    this.socket.bind(
-      this.options.bindPort,
-      this.options.bindHost,
-      this.onSocketBind.bind(this)
-    );
+    const port = this.options.bindPort;
+    const logger = this.getLogger();
+
+    const bindV4 = (): void => {
+      if (!this.options.bindV4Host) return;
+      const s = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+      s.on('error', (err: Error) => this.onSocketError(s, err));
+      s.on('message', (msg: Buffer, rinfo: RemoteInfo) => this.onSocketMessage(msg, rinfo, s));
+      s.bind(port, this.options.bindV4Host, () => {
+        logger.info(`DNS Прокси (IPv4) запущен на ${this.options.bindV4Host}:${port}`);
+      });
+      this.v4Socket = s;
+    };
+
+    if (this.options.bindV6Host) {
+      const s6 = dgram.createSocket({ type: 'udp6', reuseAddr: true, ipv6Only: true });
+      s6.on('error', (err: Error) => this.onSocketError(s6, err));
+      s6.on('message', (msg: Buffer, rinfo: RemoteInfo) => this.onSocketMessage(msg, rinfo, s6));
+      s6.bind(port, this.options.bindV6Host, () => {
+        logger.info(`DNS Прокси (IPv6) запущен на ${this.options.bindV6Host}:${port}`);
+        bindV4();
+      });
+      this.v6Socket = s6;
+    } else {
+      bindV4();
+    }
   }
 
-  async onSocketBind() {
-    this.getLogger().info(`DNS Прокси запущен на ${this.options.bindHost}:${this.options.bindPort}`);
-  }
-
-  async onSocketError(error: Error) {
+  protected onSocketError(socket: Socket, error: Error): void {
     const logger = this.getLogger();
     if (error.message.includes('EADDRINUSE')) {
-      logger.error(`Ошибка: Порт ${this.options.bindPort} уже занят другим процессом.`);
+      logger.error(`Ошибка: Порт уже занят другим процессом.`);
       logger.error(`Используйте другой порт в конфигурации или остановите процесс, использующий этот порт.`);
     } else {
       logger.error({ err: error, stack: error.stack }, `Ошибка сервера`);
     }
-    this.socket.close();
+    socket.close();
   }
 
   /**
    * Обработчик DNS запроса от клиента
    * @param msg - Буфер с DNS запросом
    * @param remoteInfo - Информация о клиенте
-   * @returns
+   * @param socket - Сокет, с которого пришёл запрос (для ответа тем же сокетом)
    */
   async onSocketMessage(
     msg: Buffer,
-    remoteInfo: RemoteInfo
+    remoteInfo: RemoteInfo,
+    socket: Socket
   ): Promise<void> {
     const logger = this.getLogger();
     logger.trace({ msg, remoteInfo }, 'App.onSocketMessage:BEG: [msg, rinfo]');
@@ -115,7 +133,7 @@ export class App {
         dnsRequest = dnsPacket.decode(msg);
       } catch (e) {
         logger.error({ err: e }, 'App.onSocketMessage: Ошибка декодирования пакета');
-        this.sendErrorResponse(msg, remoteInfo);
+        this.sendErrorResponse(msg, remoteInfo, socket);
         return;
       }
       logger.trace({ dnsRequest: JSON.stringify(dnsRequest) }, 'App.onSocketMessage:[dnsRequest]');
@@ -125,7 +143,7 @@ export class App {
 
       if (!question) {
         logger.error('App.onSocketMessage: DNS запрос не содержит вопросов');
-        this.sendErrorResponse(msg, remoteInfo);
+        this.sendErrorResponse(msg, remoteInfo, socket);
         return;
       }
       const dnsName: string = question.name; // Имя DNS, которое запрашивается
@@ -135,17 +153,17 @@ export class App {
       const lookupResult: IpLookupResult = await this.getIp(dnsName);
 
       if (typeof lookupResult.result === 'string' || Array.isArray(lookupResult.result)) {
-        // Передаем answerSource в sendSuccessResponse
         this.sendSuccessResponse(
           dnsRequest,
           remoteInfo,
           lookupResult.result,
-          lookupResult.answerSource
+          lookupResult.answerSource,
+          socket
         );
         return;
       }
 
-      this.sendErrorResponse(dnsRequest, remoteInfo);
+      this.sendErrorResponse(dnsRequest, remoteInfo, socket);
     } finally {
       logger.trace({ msg, remoteInfo }, 'App.onSocketMessage:END: [msg, rinfo]');
     }
@@ -156,10 +174,12 @@ export class App {
    * Отправляет ошибку на DNS запрос
    * @param dnsRequest - DNS запрос
    * @param remoteInfo - Информация о клиенте
+   * @param socket - Сокет для отправки ответа
    */
   protected sendErrorResponse(
     dnsRequest: dnsPacketModule.DecodedPacket | Buffer,
-    remoteInfo: RemoteInfo
+    remoteInfo: RemoteInfo,
+    socket: Socket
   ): void {
     const logger = this.getLogger();
     logger.trace({ dnsRequest, remoteInfo }, 'App.sendErrorResponse:BEG: [dnsRequest, rinfo]');
@@ -167,8 +187,6 @@ export class App {
       const response: dnsPacketModule.Packet = {
         type: 'response',
         id: 0,
-        // RCODE (Response Code) is the last 4 bits of flags;
-        // FORMERR is 1. So, set QR=1 (response), OPCODE=0, AA=0, TC=0, RD=0, RA=0, Z=0, AD=0, CD=0, and RCODE=1
         flags: 0x8001,
         questions: typeof dnsRequest === 'object' && 'questions' in dnsRequest ? (
           dnsRequest as dnsPacketModule.DecodedPacket
@@ -200,7 +218,7 @@ export class App {
       }
       const answer = dnsPacket.encode(response);
       this.getLogger().warn({ answer, remoteInfo }, 'App.sendErrorResponse:[answer]');
-      this.socket.send(answer, remoteInfo.port, remoteInfo.address);
+      socket.send(answer, remoteInfo.port, remoteInfo.address);
     } finally {
       logger.trace('App.sendErrorResponse:END');
     }
@@ -213,19 +231,21 @@ export class App {
    * @param remoteInfo - Информация о клиенте
    * @param result - Результат DNS запроса
    * @param answerSource - Информация об источнике ответа
+   * @param socket - Сокет для отправки ответа
    */
   protected sendSuccessResponse(
     response: dnsPacketModule.Packet,
     remoteInfo: RemoteInfo,
     result: string | string[] | dnsPacket.Answer[],
-    answerSource: AnswerSource
+    answerSource: AnswerSource,
+    socket: Socket
   ): void {
     const logger = this.getLogger();
     logger.trace({ response, remoteInfo, answerSource }, 'App.sendSuccessResponse:BEG: [response, rinfo, answerSource]');
     try {
       const dnsName: string = response.questions?.[0]?.name ?? '';
 
-      response.flags = dnsPacketModule.AUTHORITATIVE_ANSWER; // Устанавливаем флаг AUTHORITATIVE_ANSWER
+      response.flags = dnsPacketModule.AUTHORITATIVE_ANSWER;
       if (typeof result === 'string') {
         result = [result];
       }
@@ -250,7 +270,6 @@ export class App {
       }
       const answer = dnsPacket.encode(response);
 
-      // Логирование с answer-source
       const logData = {
         responseAnswers: response.answers,
         'answer-source': answerSource
@@ -259,7 +278,7 @@ export class App {
       this.getLogger().info(logData, 'App.sendSuccessResponse:[answer]');
       this.getLogger().debug({ ...logData, answer }, 'App.sendSuccessResponse:[answer]');
 
-      this.socket.send(answer, remoteInfo.port, remoteInfo.address);
+      socket.send(answer, remoteInfo.port, remoteInfo.address);
     } finally {
       logger.trace('App.sendSuccessResponse:END');
     }

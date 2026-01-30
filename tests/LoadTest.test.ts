@@ -97,7 +97,7 @@ async function sendDnsQuery(
 describe('DNS Server Load Test', () => {
   test('should handle load test', async () => {
     const testOptions = await loadTestOptions();
-    const { dnsServerHost, dnsServerPort, requestsPerSecond, loadTestDuration, testDomains } = testOptions;
+    const { v4DnsServerHost, dnsServerPort, requestsPerSecond, loadTestDuration, testDomains } = testOptions;
 
     const results: RequestResult[] = [];
     const startTime = Date.now();
@@ -107,7 +107,7 @@ describe('DNS Server Load Test', () => {
 
     // Функция для отправки одного запроса (не ждем ответа, чтобы не блокировать)
     const sendRequestAsync = (domain: string): void => {
-      sendDnsQuery(dnsServerHost, dnsServerPort, domain).then(result => {
+      sendDnsQuery(v4DnsServerHost, dnsServerPort, domain).then(result => {
         results.push(result);
       }).catch(error => {
         results.push({
