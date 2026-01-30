@@ -149,3 +149,33 @@ VAN QA
 Не забывай сохранять чат.
 
 **Ответ:** BUILD для task20260121120400 выполнен. Реализовано: (1) Артефакты сбор информации — 10-analise-result.md, 20-lib-info.md в docs/tasks/2026/01/21/12-04-00/docs/. (2) Конфигурация — v4host, v6host, port в config/app.ini.dist, config/app.ini, env/dev и env/prod config. (3) Options — bindV4Host?, bindV6Host?, bindPort; OptionsLoader читает v4host/v6host/port, валидация «хотя бы один хост». (4) App — socket: Socket | null, socket6: Socket | null; initSocket создаёт udp4 и/или udp6 по опциям; onSocketMessage(msg, rinfo, socket), sendErrorResponse/sendSuccessResponse(..., socket); onSocketError(socket, err). (5) Тесты — 31 passed. (6) Документация — раздел «Поддержка IPv4 и IPv6» в readme.md. Обновлены memory-bank/tasks.md (чеклист), progress.md, activeContext.md. Журнал чата обновлён.
+
+---
+## Запрос: 2026-01-30 16:10:00 GMT
+Режим работы: Agent mode
+Процент контекста до выполнения: [не определен]
+Процент контекста после выполнения: [не определен]
+Модель AI: [не определен]
+@terminals/2.txt:7-140 Ошибка осталась.
+
+**Ответ:** Изменён порядок привязки сокетов в `src/App/index.ts`: сначала биндится IPv6 (с `reuseAddr: true` и `ipv6Only: true`), в callback успешного bind IPv6 вызывается привязка IPv4. Так устраняется гонка при одновременном bind на один порт и ошибка EADDRINUSE на Linux. Рекомендовано пересобрать образ и запустить `npm run docker:prod`.
+
+---
+## Запрос: 2026-01-30 16:25:00 GMT
+Режим работы: Agent mode
+Процент контекста до выполнения: [не определен]
+Процент контекста после выполнения: [не определен]
+Модель AI: [не определен]
+Похоже, мы забыли модифицировать @docker-compose.yml для поддержки IPv6.
+
+**Ответ:** Добавлена поддержка IPv6 в docker-compose: в сети включён `enable_ipv6: true` и вторая подсеть `${NETWORK_SUBNET_IPV6:-fd00:0:0:1::/80}`; у сервисов `dns-proxy-dev` и `dns-proxy-prod` заданы `ipv6_address` (по умолчанию fd00:0:0:1::133 и fd00:0:0:1::13). Обновлены `.env.dist` (комментарии по переменным IPv6) и `docs/DOCKER-OPTIONS.md` (описание и пример конфигурации dual-stack).
+
+---
+## Запрос: 2026-01-30 16:40:00 GMT
+Режим работы: Agent mode
+Процент контекста до выполнения: [не определен]
+Процент контекста после выполнения: [не определен]
+Модель AI: [не определен]
+/chat-save
+
+**Ответ:** Выполнен полный экспорт чата в файл журнала по правилам chat-saving. Содержимое файла `docs/prompt/2026/2026-01-30/13-00/chat.md` заменено полным текущим состоянием чата (все запросы и ответы).
