@@ -84,6 +84,26 @@ negative-ttl=60       # TTL для отрицательного кеша (NXDOMA
 
 ---
 
+### Настройка DNS в PROD
+
+* Cloudflare DNS https://developers.cloudflare.com/1.1.1.1/ip-addresses/
+* Google DNS https://en.wikipedia.org/wiki/Google_Public_DNS
+```text
+IPv4     IPv6                  Owner  
+1.1.1.1  2606:4700:4700::1111  cloudflare
+1.0.0.1  2606:4700:4700::1001  cloudflare
+8.8.8.8  2001:4860:4860::8888  google
+8.8.4.4  2001:4860:4860::8844  google
+```
+
+
+* app.ini
+
+```ini
+[upstream-dns]
+inet-dns=1.1.1.1,2606:4700:4700::1111,8.8.8.8,2001:4860:4860::8888
+```
+
 ---
 
 ## Быстрый старт
@@ -112,6 +132,24 @@ npm run dev
 ```bash
 npm install
 npm run prod:tsx
+```
+
+---
+
+### Проверка работоспособности
+
+**Сервисы:**
+
+* https://test-ipv6.com/
+* https://ipv6-test.com/
+
+**Команды:**
+
+* Запрос IPv6 к DNS для "google.com" (PROD) 
+```shell
+dig @fd00:0:0:1::13 google.com
+
+dig @fd00:0:0:1::13 google.com +short
 ```
 
 ---
