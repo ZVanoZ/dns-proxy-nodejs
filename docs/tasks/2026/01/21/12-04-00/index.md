@@ -64,6 +64,18 @@
 
 3.4. Обновить документацию.
 
+* Дополнение № 1
+
+В методы ["sendErrorResponse", "sendSuccessResponse"] класса App при логировании нужно добавить информацию о том, на каком интерфейсе получен запрос [IP, PORT, IPv4|IPv6].
+
+**Решение по Дополнению № 1 (PLAN):**
+
+- Для `sendErrorResponse`:
+  - При наличии распарсенного DNS-запроса извлекать `questionName` из первого вопроса (`dnsRequest.questions[0].name`).
+  - Логировать `questionName` вместе с `answer` и `remoteInfo` как отдельное поле в JSON-логе.
+- Для `sendErrorResponse` и `sendSuccessResponse` (на этапе BUILD):
+  - Добавить helper получения информации о серверном интерфейсе на основе `socket.address()` (локальный IP, порт и стек IPv4/IPv6).
+  - Логировать объект `serverInterface` (IP, PORT, family) в структуре логов, не ломая существующий формат.
 
 
 ## Контекстные файлы

@@ -33,3 +33,28 @@ export interface IpLookupResult {
    */
   answerSource: AnswerSource;
 }
+
+/**
+ * Тип IP-стека серверного интерфейса
+ */
+export type IpVersion = 'IPv4' | 'IPv6';
+
+/**
+ * Информация о локальном интерфейсе сервера, с которого отправлен ответ
+ */
+export interface ServerInterfaceInfo {
+  /**
+   * Локальный IP адрес, к которому привязан сокет
+   */
+  ip: string;
+
+  /**
+   * Локальный порт
+   */
+  port: number;
+
+  /**
+   * Семейство IP (IPv4 или IPv6)
+   */
+  family: IpVersion;
+}

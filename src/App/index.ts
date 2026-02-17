@@ -9,7 +9,11 @@ import type { Socket, RemoteInfo } from "node:dgram";
 import dgram from "node:dgram";
 import type { Logger } from "pino";
 import type { DnsCacheInterface } from "../DnsCache/index.js";
-import type { AnswerSource, IpLookupResult } from "./types.js";
+import type {
+  AnswerSource,
+  IpLookupResult,
+  ServerInterfaceInfo
+} from "./types.js";
 
 
 export {
@@ -66,6 +70,25 @@ export class App {
       info: (...args: any[]) => console.log(...args),
       debug: (...args: any[]) => console.debug(...args),
     } as Logger;
+  }
+
+  /**
+   * Получить информацию о локальном серверном интерфейсе для заданного сокета
+   */
+  protected getServerInterfaceInfo(
+    socket: Socket
+  ): ServerInterfaceInfo {
+    const addressInfo = socket.address();
+
+    const family = addressInfo.family === 'IPv6'
+      ? 'IPv6'
+      : 'IPv4';
+
+    return {
+      ip: addressInfo.address,
+      port: addressInfo.port,
+      family
+    };
   }
 
   public async run() {
@@ -182,7 +205,31 @@ export class App {
     socket: Socket
   ): void {
     const logger = this.getLogger();
-    logger.trace({ dnsRequest, remoteInfo }, 'App.sendErrorResponse:BEG: [dnsRequest, rinfo]');
+    let questionName: string | undefined;
+
+    if (!(dnsRequest instanceof Buffer)
+      && typeof dnsRequest === 'object'
+      && 'questions' in dnsRequest
+    ) {
+      const decodedRequest = dnsRequest as dnsPacketModule.DecodedPacket;
+      const firstQuestion = decodedRequest.questions?.[0];
+
+      if (firstQuestion && typeof firstQuestion.name === 'string') {
+        questionName = firstQuestion.name;
+      }
+    }
+
+    const serverInterface: ServerInterfaceInfo = this.getServerInterfaceInfo(socket);
+
+    logger.trace(
+      {
+        dnsRequest,
+        remoteInfo,
+        questionName,
+        serverInterface
+      },
+      'App.sendErrorResponse:BEG: [dnsRequest, rinfo]'
+    );
     try {
       const response: dnsPacketModule.Packet = {
         type: 'response',
@@ -217,7 +264,15 @@ export class App {
         }
       }
       const answer = dnsPacket.encode(response);
-      this.getLogger().warn({ answer, remoteInfo }, 'App.sendErrorResponse:[answer]');
+      this.getLogger().warn(
+        {
+          answer,
+          remoteInfo,
+          questionName,
+          serverInterface
+        },
+        'App.sendErrorResponse:[answer]'
+      );
       socket.send(answer, remoteInfo.port, remoteInfo.address);
     } finally {
       logger.trace('App.sendErrorResponse:END');
@@ -270,9 +325,12 @@ export class App {
       }
       const answer = dnsPacket.encode(response);
 
+      const serverInterface: ServerInterfaceInfo = this.getServerInterfaceInfo(socket);
+
       const logData = {
         responseAnswers: response.answers,
-        'answer-source': answerSource
+        'answer-source': answerSource,
+        serverInterface
       };
 
       this.getLogger().info(logData, 'App.sendSuccessResponse:[answer]');
