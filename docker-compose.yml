@@ -4,13 +4,14 @@
 # Или через npm: npm run docker:dev / npm run docker:prod
 
 services:
+
   dns-proxy-dev:
     profiles:
       - dev
     build:
       context: .
       dockerfile: ./env/dev/Dockerfile
-    container_name: dns-proxy-dev
+    container_name: dns-proxy-nodejs-dev
     ports:
       - "5053:53/udp"
     volumes:
@@ -30,15 +31,16 @@ services:
     networks:
       default:
         ipv4_address: ${DEV_SERVER_IP}
-        ipv6_address: ${DEV_SERVER_IPV6:-fd00:0:0:1::133}
+        ipv6_address: ${DEV_SERVER_IPV6}
 
   dns-proxy-prod:
     profiles:
       - prod
-    build:
-      context: .
-      dockerfile: ./env/prod/Dockerfile
-    container_name: dns-proxy-prod
+#    build:
+#      context: .
+#      dockerfile: ./env/prod/Dockerfile
+    image: dns-proxy-nodejs-prod
+    container_name: dns-proxy-nodejs-prod
     ports:
       - "53:5053/udp"
     volumes:
@@ -55,7 +57,7 @@ services:
     networks:
       default:
         ipv4_address: ${PROD_SERVER_IP}
-        ipv6_address: ${PROD_SERVER_IPV6:-fd00:0:0:1::13}
+        ipv6_address: ${PROD_SERVER_IPV6}
 
 networks:
   default:
@@ -65,4 +67,4 @@ networks:
     ipam:
       config:
         - subnet: ${NETWORK_SUBNET}
-        - subnet: ${NETWORK_SUBNET_IPV6:-fd00:0:0:1::/80}
+        - subnet: ${NETWORK_SUBNET_IPV6}
