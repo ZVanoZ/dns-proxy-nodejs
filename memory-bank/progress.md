@@ -4,25 +4,23 @@
 **Альфа-версия** - функционал работает, выполняется рефакторинг и тестирование
 
 ### Текущая задача
-**task20260121120400 — поддержка IPv6 (dual-stack)**
+**Нет активной задачи** — последняя задача заархивирована.
 
-**Статус:** ✅ BUILD выполнен (2026-01-30)
+### Последняя архивированная задача (2026-01-30)
+**task20260121120400 — поддержка IPv6 (dual-stack) + Дополнение № 1**
 
-**Выполнено:**
-- Артефакты сбор информации: `docs/tasks/2026/01/21/12-04-00/docs/10-analise-result.md`, `20-lib-info.md`
-- Конфигурация: `v4host`, `v6host`, `port` в `config/app.ini.dist`, `env/dev/config/app.ini.dist`, `env/prod/config/app.ini.dist`, `config/app.ini`
-- Options: `bindV4Host?`, `bindV6Host?`, `bindPort`; загрузка из INI с валидацией «хотя бы один хост»
-- App: два сокета (udp4, udp6), общий обработчик с передачей сокета в send*; режимы IPv4-only, IPv6-only, dual-stack
-- Сборка и тесты: 31 тест пройдены
-- Документация: раздел «Поддержка IPv4 и IPv6» в readme.md
+**Статус:** ✅ BUILD выполнен, ✅ REFLECT выполнен, ✅ ARCHIVE создан
 
-**Изменённые файлы:**
-- `src/App/Options/index.ts`, `OptionsLoader.ts` — новые поля и загрузка v4host/v6host/port
-- `src/App/index.ts` — initSocket (один или два сокета), onSocketMessage(msg, rinfo, socket), sendErrorResponse/sendSuccessResponse(..., socket)
-- `config/app.ini.dist`, `config/app.ini`, `env/dev/config/app.ini.dist`, `env/prod/config/app.ini.dist`
-- `readme.md` — раздел IPv4/IPv6
+**Архив:** `memory-bank/archive/archive-task20260121120400.md`
+**Рефлексия:** `memory-bank/reflection/reflection-ipv6-2026-01-30.md`
 
-**Следующий шаг:** `/reflect`, затем `/archive` по завершении задачи.
+**Кратко выполнено:**
+- IPv6 dual-stack: `v4host`/`v6host`/`port` в конфиге; два сокета udp4/udp6; порядок bind (сначала IPv6, затем IPv4) для избежания EADDRINUSE
+- Дополнение № 1: типы IpVersion/ServerInterfaceInfo, helper getServerInterfaceInfo, логирование serverInterface (IP, порт, IPv4/IPv6) и questionName
+- Docker/окружение: dual-stack сеть, IPv6-подсеть, ipv6_address, переменные DEV_SERVER_IPV6/PROD_SERVER_IPV6/NETWORK_SUBNET_IPV6
+- Документация: раздел про IPv4/IPv6 dual-stack и обновлённый DOCKER-OPTIONS.md
+
+**Следующий шаг:** при появлении новой задачи — `/van <task_id>`.
 
 ---
 

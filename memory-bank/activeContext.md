@@ -2,92 +2,19 @@
 
 ## Текущий фокус
 
-**Активная задача:** task20260121120400 (поддержка IPv6)  
-**Дата начала:** 2026-01-30  
-**Уровень сложности:** Level 3  
-**Статус:** ✅ BUILD завершён полностью (2026-01-30). ✅ REFLECT завершён (2026-01-30). Дополнение № 1 реализовано и отрефлексировано. Следующий шаг: `/archive` (при необходимости).
+**Активная задача:** отсутствует  
+**Статус:** контекст очищен, готово к запуску новой задачи (`/van <task_id>`).
 
-### Контекст задачи
+### Контекст
 
-Добавление поддержки IPv6 (dual-stack) в DNS-прокси. План зафиксирован в `memory-bank/tasks.md`. Реализация по чеклисту выполнена; пункты 2.6 и 3.4 (Docker, .env, документация) на стадии BUILD не были изменены — изменения внесены пользователем и отражены в tasks.md и activeContext.
+Последняя завершённая задача: `task20260121120400` (поддержка IPv6 dual-stack и Дополнение № 1 по логированию).  
+Подробности зафиксированы в:
+- `memory-bank/archive/archive-task20260121120400.md`
+- `memory-bank/reflection/reflection-ipv6-2026-01-30.md`
 
-### Текущее состояние кодовой базы (IPv6)
-
-- **Приложение:** два сокета (v4Socket, v6Socket), привязка IPv6 затем IPv4 (устранение EADDRINUSE), опции `reuseAddr` и `ipv6Only` для udp6. Конфиг: `v4host`, `v6host`, `port` в app.ini; Options: `bindV4Host?`, `bindV6Host?`, `bindPort`.
-- **Логирование (Дополнение № 1):** типы `IpVersion` и `ServerInterfaceInfo` в `src/App/types.ts`; helper `getServerInterfaceInfo(socket)` для получения информации о локальном интерфейсе; логирование `serverInterface` (IP, порт, IPv4/IPv6) и `questionName` в `sendErrorResponse` и `sendSuccessResponse`.
-- **Docker:** `docker-compose.yml` — сеть с `enable_ipv6: true`, подсеть `${NETWORK_SUBNET_IPV6:-fd00:0:0:1::/80}`; у сервисов dev/prod заданы `ipv6_address` (по умолчанию fd00:0:0:1::133 и fd00:0:0:1::13).
-- **Окружение:** `.env` / `.env.dist` — переменные `DEV_SERVER_IPV6`, `PROD_SERVER_IPV6`, `NETWORK_SUBNET_IPV6` (в .env заданы явно; в .env.dist — комментарии и опциональные значения по умолчанию в compose).
-- **Документация:** `readme.md` — раздел «Поддержка IPv4 и IPv6 (dual-stack)»; `docs/DOCKER-OPTIONS.md` — описание dual-stack сети, переменных IPv6 и пример конфигурации.
-
-**Последняя завершенная задача:**
-- ✅ **Улучшение и актуализация документации** (2026-01-23)
-- 📦 **Архив:** `memory-bank/archive/archive-documentation-refactoring-2026-01-23.md`
-- 📝 **Рефлексия:** `memory-bank/reflection/reflection-documentation-refactoring-2026-01-23.md`
-
-**Предыдущая завершенная задача:**
-- ✅ **Кеширование DNS-запросов и добавление структуры answer-source в логирование** (2026-01-20)
-- 📦 **Архив:** `memory-bank/archive/archive-dns-cache-2026-01-20.md`
-- 📝 **Рефлексия:** `memory-bank/reflection/reflection-dns-cache-2026-01-20.md`
-- 🎨 **Creative:** `memory-bank/creative/creative-dns-cache.md`
-
-## Статус
-✅ Последняя задача завершена и заархивирована
-⏭️ Готово к новой задаче
-
-## Последние изменения
-- ✅ task20260121120400: поддержка IPv6 (dual-stack) — конфиг v4host/v6host/port, Options, App (два сокета, привязка IPv6 затем IPv4), тесты, readme
-- ✅ Docker и окружение для IPv6: docker-compose (enable_ipv6, ipv6 subnet, ipv6_address), .env/.env.dist (DEV_SERVER_IPV6, PROD_SERVER_IPV6, NETWORK_SUBNET_IPV6), docs/DOCKER-OPTIONS.md (изменения внесены пользователем)
-- ✅ Дополнение № 1: логирование serverInterface (IP, порт, IPv4/IPv6) и questionName в sendErrorResponse/sendSuccessResponse; типы IpVersion и ServerInterfaceInfo; helper getServerInterfaceInfo
-- ✅ Рефлексия по задаче IPv6 (включая Дополнение № 1) зафиксирована в `memory-bank/reflection/reflection-ipv6-2026-01-30.md`
-
-## Результаты реализации
-
-**Созданные файлы:**
-- `src/DnsCache/types.ts` - Типы и интерфейсы кеша
-- `src/DnsCache/DnsCache.ts` - Основной класс кеша с LRU
-- `src/DnsCache/index.ts` - Экспорт API
-- `src/App/types.ts` - Типы для answer-source
-- `tests/DnsCache.test.ts` - Unit-тесты (29 тестов)
-
-**Модифицированные файлы (IPv6 + Дополнение № 1):**
-- `src/App/types.ts` - Добавлены типы IpVersion и ServerInterfaceInfo (Дополнение № 1)
-- `src/App/index.ts` - Два сокета IPv4/IPv6, helper getServerInterfaceInfo, логирование serverInterface и questionName (IPv6 + Дополнение № 1)
-- `src/App/Options/index.ts` - bindV4Host, bindV6Host, bindPort (IPv6)
-- `src/App/Options/OptionsLoader.ts` - Загрузка v4host, v6host, port (IPv6)
-- `config/app.ini.dist` - Параметры v4host, v6host, port (IPv6)
-- `env/dev/config/app.ini.dist` - Параметры v4host, v6host, port (IPv6)
-- `env/prod/config/app.ini.dist` - Параметры v4host, v6host, port (IPv6)
-- `docker-compose.yml` - enable_ipv6, IPv6 подсеть, ipv6_address (IPv6, изменения пользователя)
-- `.env.dist` - Переменные DEV_SERVER_IPV6, PROD_SERVER_IPV6, NETWORK_SUBNET_IPV6 (IPv6)
-- `readme.md` - Документация IPv4/IPv6 dual-stack (IPv6)
-- `docs/DOCKER-OPTIONS.md` - Документация dual-stack сети (IPv6)
-
-**Тестирование:**
-- ✅ Unit-тесты: 29 тестов, все проходят
-- ✅ Сборка: успешно
-- ✅ Линтер: ошибок не найдено
-
-## Результаты анализа
-
-### Временные рамки
-- **Начало:** 05.01.2026
-- **Конец:** 14.01.2026
-- **Длительность:** 10 дней активной разработки
-
-### Основные достижения
-1. Создана полностью рабочая DNS-прокси система
-2. Реализована система логирования с ротацией
-3. Добавлена Docker контейнеризация
-4. Настроено unit-тестирование
-5. Создана система сборки и развертывания
-6. Организована документация
-
-### Технический долг
-- Рефакторинг кода (отмечено в коммитах)
-- Расширение тестового покрытия
+Кодовая база находится в состоянии «Альфа-версия»: функционал работает, ведётся точечный рефакторинг и тестирование по мере появления новых задач.
 
 ## Следующие шаги
-1. При необходимости — архивирование задачи task20260121120400 (`/archive`)
-2. Ожидание новой задачи от пользователя
-3. Готовность к определению сложности и маршрутизации workflow
-4. При следующем обновлении memory-bank — проверить версию Docker и обновить техстек
+1. При появлении новой задачи — инициализировать её через `/van <task_id>`.
+2. Использовать `docs/tasks/rules.md` и текущее содержимое Memory Bank для планирования.
+3. Поддерживать актуальность архивов и рефлексий для последующих задач.
